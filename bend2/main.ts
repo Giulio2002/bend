@@ -744,10 +744,11 @@ function book_promises(book: Bend.Book): string[] {
     if (t !== undefined && !seen.has(k)) {
       seen.add(k);
       const rs = new Set<string>();
+      const ref_seen = new WeakSet<object>();
       for (const c of t.$ === "ADT" ? t.c : [t]) {
-        term_refs(Bend.term_lower(c.T), rs);
+        term_refs(Bend.term_lower(c.T), rs, ref_seen);
       }
-      term_refs(t.$ === "Def" ? t.e : undefined, rs);
+      term_refs(t.$ === "Def" ? t.e : undefined, rs, ref_seen);
       for (const r of rs) {
         (uses[r] ??= []).push(k);
         q.push(r);
@@ -761,16 +762,18 @@ function book_promises(book: Bend.Book): string[] {
 }
 
 // term_refs adds to out the names a term (a span skipped) refers to.
-function term_refs(tm: unknown, out: Set<string>): void {
-  if (typeof tm === "object" && tm !== null) {
-    const { $, k } = tm as { $?: string; k?: string };
-    if (($ === "Ref" || $ === "ADT") && k !== undefined) {
-      out.add(k);
+function term_refs(tm: unknown, out: Set<string>, seen: WeakSet<object>): void {
+  const stack: unknown[] = [tm];
+  while (stack.length > 0) {
+    const node = stack.pop();
+    if (typeof node !== "object" || node === null || seen.has(node)) continue;
+    seen.add(node);
+    const term = node as { $?: string; k?: string };
+    if ((term.$ === "Ref" || term.$ === "ADT") && term.k !== undefined) {
+      out.add(term.k);
     }
-    for (const [f, v] of Object.entries(tm)) {
-      if (f !== "s") {
-        term_refs(v, out);
-      }
+    for (const field of Object.keys(node)) {
+      if (field !== "s") stack.push((node as Record<string, unknown>)[field]);
     }
   }
 }
