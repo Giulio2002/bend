@@ -3046,47 +3046,126 @@ export function term_snf(book: Book, term: HTerm): HTerm {
 // same walk, kinds exact, no swap (a swap under EQ is harmless, so
 // the All case swaps unconditionally).
 
-// Syntactic identity, forcing share cells but unfolding nothing, within a
-// budget of visits (a shared node counts at each visit); heads and first
-// arguments are visited first, where terms usually differ. Identical terms
-// are convertible; false means "unknown".
-function term_same(lhs: HTerm, rhs: HTerm): boolean {
-  const st: HTerm[] = [lhs, rhs];
-  for (let n = 4096; n > 0 && st.length > 0; n--) {
-    const y = term_strip(st.pop()!);
-    const x = term_strip(st.pop()!);
-    if (x === y) {
-      continue;
-    }
-    if (x.$ !== y.$) {
-      return false;
-    }
-    const z = y as typeof x;
-    switch (x.$) {
-      case "Var": if (x.i < 0 || x.i !== (z as typeof x).i) { return false; } break;
-      case "Ref": if (x.k !== (z as typeof x).k) { return false; } break;
-      case "Lit": if (x.k !== (z as typeof x).k || x.v !== (z as typeof x).v) { return false; } break;
-      case "App": st.push(x.x, (z as typeof x).x, x.f, (z as typeof x).f); break;
-      case "Eql": st.push(x.T, (z as typeof x).T, x.b, (z as typeof x).b, x.a, (z as typeof x).a); break;
-      case "Ctr":
-      case "ADT": {
-        const w = z as typeof x;
-        if (x.k !== w.k || x.x.length !== w.x.length) {
-          return false;
-        }
-        if (x.$ === "ADT" && x.r.join() !== (w as typeof x).r.join()) {
-          return false;
-        }
-        for (let j = x.x.length - 1; j >= 0; j--) {
-          st.push(x.x[j], w.x[j]);
-        }
-        break;
+type SameMemo = {
+  left: number;
+  pairs?: WeakMap<HTerm, WeakMap<HTerm, boolean>>;
+};
+
+function same_get(memo: SameMemo, a: HTerm, b: HTerm): boolean | undefined {
+  return memo.pairs?.get(a)?.get(b);
+}
+
+function same_set(memo: SameMemo, a: HTerm, b: HTerm, same: boolean): void {
+  let pairs = memo.pairs;
+  if (pairs === undefined) {
+    pairs = new WeakMap();
+    memo.pairs = pairs;
+  }
+  let row = pairs.get(a);
+  if (row === undefined) {
+    row = new WeakMap();
+    pairs.set(a, row);
+  }
+  row.set(b, same);
+  let col = pairs.get(b);
+  if (col === undefined) {
+    col = new WeakMap();
+    pairs.set(b, col);
+  }
+  col.set(a, same);
+}
+
+type SameFrame = { a: HTerm; b: HTerm; kids?: [HTerm, HTerm][]; next: number };
+
+// Structural identity is memoized across recursive calls to term_compare.
+// `false` means the terms differ; exhausting the shared budget means unknown.
+function term_same(lhs: HTerm, rhs: HTerm, memo: SameMemo): boolean {
+  const st: SameFrame[] = [{ a: lhs, b: rhs, next: 0 }];
+  while (st.length > 0) {
+    const frame = st[st.length - 1];
+    const a = term_strip(frame.a);
+    const b = term_strip(frame.b);
+    frame.a = a;
+    frame.b = b;
+
+    if (frame.kids === undefined) {
+      if (a === b || same_get(memo, a, b) === true) {
+        st.pop();
+        continue;
       }
-      case "Rfl": case "Efq": break;
-      default: return false;
+      if (same_get(memo, a, b) === false) {
+        for (const parent of st) same_set(memo, parent.a, parent.b, false);
+        return false;
+      }
+      if (memo.left === 0) return false;
+      memo.left--;
+      if (a.$ !== b.$) {
+        for (const parent of st) same_set(memo, parent.a, parent.b, false);
+        return false;
+      }
+      switch (a.$) {
+        case "Var":
+          if (a.i < 0 || a.i !== (b as typeof a).i) {
+            for (const parent of st) same_set(memo, parent.a, parent.b, false);
+            return false;
+          }
+          same_set(memo, a, b, true);
+          st.pop();
+          continue;
+        case "Ref":
+          if (a.k !== (b as typeof a).k) {
+            for (const parent of st) same_set(memo, parent.a, parent.b, false);
+            return false;
+          }
+          same_set(memo, a, b, true);
+          st.pop();
+          continue;
+        case "Lit":
+          if (a.k !== (b as typeof a).k || a.v !== (b as typeof a).v) {
+            for (const parent of st) same_set(memo, parent.a, parent.b, false);
+            return false;
+          }
+          same_set(memo, a, b, true);
+          st.pop();
+          continue;
+        case "App": {
+          const x = b as typeof a;
+          frame.kids = [[a.f, x.f], [a.x, x.x]];
+          break;
+        }
+        case "Eql": {
+          const x = b as typeof a;
+          frame.kids = [[a.a, x.a], [a.b, x.b], [a.T, x.T]];
+          break;
+        }
+        case "Ctr":
+        case "ADT": {
+          const x = b as typeof a;
+          if (a.k !== x.k || a.x.length !== x.x.length
+              || (a.$ === "ADT" && a.r.join() !== (x as typeof a).r.join())) {
+            for (const parent of st) same_set(memo, parent.a, parent.b, false);
+            return false;
+          }
+          frame.kids = a.x.map((field, i) => [field, x.x[i]]);
+          break;
+        }
+        case "Rfl": case "Efq":
+          same_set(memo, a, b, true);
+          st.pop();
+          continue;
+        default:
+          for (const parent of st) same_set(memo, parent.a, parent.b, false);
+          return false;
+      }
+    } else if (frame.next < frame.kids.length) {
+      const [x, y] = frame.kids[frame.next++];
+      st.push({ a: x, b: y, next: 0 });
+    } else {
+      same_set(memo, a, b, true);
+      st.pop();
     }
   }
-  return st.length === 0;
+  return true;
 }
 
 // Only a side that is a call can be expensive to normalize; two values
@@ -3097,7 +3176,14 @@ function term_call(t: HTerm): boolean {
 }
 
 export function term_compare(mode: "EQ" | "LE", book: Book, lhs: HTerm, rhs: HTerm, dep: number = 0): boolean {
-  if (lhs === rhs || ((term_call(lhs) || term_call(rhs)) && term_same(lhs, rhs))) {
+  return term_compare_inner(mode, book, lhs, rhs, dep, {
+    left: 4096,
+  });
+}
+
+function term_compare_inner(mode: "EQ" | "LE", book: Book, lhs: HTerm,
+  rhs: HTerm, dep: number, same: SameMemo): boolean {
+  if (lhs === rhs || ((term_call(lhs) || term_call(rhs)) && term_same(lhs, rhs, same))) {
     return true;
   }
   let a = term_wnf(book, lhs);
@@ -3107,7 +3193,7 @@ export function term_compare(mode: "EQ" | "LE", book: Book, lhs: HTerm, rhs: HTe
   }
   if (a.$ === "Lam" || b.$ === "Lam") {
     const x: HTerm = Var("_", dep);
-    return term_compare(mode, book, term_apply(a, x), term_apply(b, x), dep + 1);
+    return term_compare_inner(mode, book, term_apply(a, x), term_apply(b, x), dep + 1, same);
   }
   if (a.$ === "Lit" && b.$ === "Ctr") {
     a = lit_step(a);
@@ -3130,14 +3216,14 @@ export function term_compare(mode: "EQ" | "LE", book: Book, lhs: HTerm, rhs: HTe
       for (let j = 0; j < n; j++) {
         [f, g] = [App(f, Var("_", dep + j)), App(g, Var("_", dep + j))];
       }
-      return n > 0 && term_compare(mode, book, f, g, dep + n);
+      return n > 0 && term_compare_inner(mode, book, f, g, dep + n, same);
     }
     case "Typ": {
       if (b.$ !== "Typ") {
         return false;
       }
       if (mode === "EQ") {
-        return term_compare("EQ", book, a.g, b.g, dep);
+        return term_compare_inner("EQ", book, a.g, b.g, dep, same);
       }
       const g = term_wnf(book, a.g);
       const h = term_wnf(book, b.g);
@@ -3145,16 +3231,16 @@ export function term_compare(mode: "EQ" | "LE", book: Book, lhs: HTerm, rhs: HTe
         return true;
       }
       if (g.$ === "Min") {
-        const fa = term_compare("LE", book, Typ(g.a), b, dep);
-        const fb = term_compare("LE", book, Typ(g.b), b, dep);
+        const fa = term_compare_inner("LE", book, Typ(g.a), b, dep, same);
+        const fb = term_compare_inner("LE", book, Typ(g.b), b, dep, same);
         return fa && fb;
       }
       if (h.$ === "Min") {
-        const fa = term_compare("LE", book, a, Typ(h.a), dep);
-        const fb = term_compare("LE", book, a, Typ(h.b), dep);
+        const fa = term_compare_inner("LE", book, a, Typ(h.a), dep, same);
+        const fb = term_compare_inner("LE", book, a, Typ(h.b), dep, same);
         return fa || fb;
       }
-      return term_compare("LE", book, g, h, dep);
+      return term_compare_inner("LE", book, g, h, dep, same);
     }
     case "Qnt":
     case "Efq":
@@ -3166,14 +3252,14 @@ export function term_compare(mode: "EQ" | "LE", book: Book, lhs: HTerm, rhs: HTe
     }
     case "Min": {
       return b.$ === "Min"
-          && term_compare("EQ", book, a.a, b.a, dep)
-          && term_compare("EQ", book, a.b, b.b, dep);
+          && term_compare_inner("EQ", book, a.a, b.a, dep, same)
+          && term_compare_inner("EQ", book, a.b, b.b, dep, same);
     }
     case "All": {
       const x: HTerm = Var(a.k, dep);
       return b.$ === "All" && a.q.$ === b.q.$
-          && term_compare(mode, book, b.A, a.A, dep)
-          && term_compare(mode, book, a.B(x), b.B(x), dep + 1);
+          && term_compare_inner(mode, book, b.A, a.A, dep, same)
+          && term_compare_inner(mode, book, a.B(x), b.B(x), dep + 1, same);
     }
     // a stuck call is canonical: its head def compares by name, not by eta
     case "App": {
@@ -3181,8 +3267,8 @@ export function term_compare(mode: "EQ" | "LE", book: Book, lhs: HTerm, rhs: HTe
         return false;
       }
       const head = a.f.$ === "Ref" && b.f.$ === "Ref" ? a.f.k === b.f.k
-        : term_compare("EQ", book, a.f, b.f, dep);
-      return head && term_compare("EQ", book, a.x, b.x, dep);
+        : term_compare_inner("EQ", book, a.f, b.f, dep, same);
+      return head && term_compare_inner("EQ", book, a.x, b.x, dep, same);
     }
     case "ADT": {
       if (b.$ !== "ADT" || a.k !== b.k || a.x.length !== b.x.length) {
@@ -3192,34 +3278,34 @@ export function term_compare(mode: "EQ" | "LE", book: Book, lhs: HTerm, rhs: HTe
         return false;
       }
       return b.r.every((c) => a.r.includes(c))
-          && a.x.every((x, j) => term_compare("EQ", book, x, b.x[j], dep));
+          && a.x.every((x, j) => term_compare_inner("EQ", book, x, b.x[j], dep, same));
     }
     case "Ctr": {
       return b.$ === "Ctr" && a.k === b.k && a.x.length === b.x.length
-          && a.x.every((x, j) => term_compare("EQ", book, x, b.x[j], dep));
+          && a.x.every((x, j) => term_compare_inner("EQ", book, x, b.x[j], dep, same));
     }
     case "Lit": {
       return b.$ === "Lit" && a.k === b.k && a.v === b.v;
     }
     case "Mat": {
       return b.$ === "Mat" && a.k === b.k
-          && term_compare("EQ", book, a.h, b.h, dep)
-          && term_compare("EQ", book, a.m, b.m, dep);
+          && term_compare_inner("EQ", book, a.h, b.h, dep, same)
+          && term_compare_inner("EQ", book, a.m, b.m, dep, same);
     }
     case "Eql": {
       return b.$ === "Eql"
-          && term_compare("EQ", book, a.a, b.a, dep)
-          && term_compare("EQ", book, a.b, b.b, dep)
-          && term_compare("EQ", book, a.T, b.T, dep);
+          && term_compare_inner("EQ", book, a.a, b.a, dep, same)
+          && term_compare_inner("EQ", book, a.b, b.b, dep, same)
+          && term_compare_inner("EQ", book, a.T, b.T, dep, same);
     }
     case "Hol": {
       return b.$ === "Hol" && a.k === b.k;
     }
     case "Rwt": {
       return b.$ === "Rwt"
-          && term_compare("EQ", book, a.e, b.e, dep)
-          && term_compare("EQ", book, a.p, b.p, dep)
-          && term_compare("EQ", book, a.f, b.f, dep);
+          && term_compare_inner("EQ", book, a.e, b.e, dep, same)
+          && term_compare_inner("EQ", book, a.p, b.p, dep, same)
+          && term_compare_inner("EQ", book, a.f, b.f, dep, same);
     }
     default: {
       return false;
