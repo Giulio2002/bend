@@ -7,6 +7,7 @@ def f(x: Nat) -> Nat:
   -y = x
   y
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : -y
 #|- observed : y

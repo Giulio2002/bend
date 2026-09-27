@@ -17,6 +17,7 @@ def launder(T, e, x):
   +y = {x : Empty.absurd(Data, e)};
   Two2{y, y}
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : Empty.absurd(Data, e)
 #|- observed : T

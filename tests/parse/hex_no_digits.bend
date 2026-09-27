@@ -9,6 +9,7 @@ law main:
 
 def main(): 0x
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a numeric literal (NUMBER is U32, NUMBER n is Nat)
 #|- observed : 'x'

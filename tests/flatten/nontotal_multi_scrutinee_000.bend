@@ -42,6 +42,7 @@ law main:
 
 def main(): f(Nl0{}, Nl0{})
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : cases for Zz0
 #|- observed : \{}

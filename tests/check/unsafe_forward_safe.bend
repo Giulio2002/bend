@@ -15,6 +15,7 @@ def g(x: Nat) -> Nat:
 def main() -> Nat:
   h(1n)
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a filled definition (an unfilled law is a dead claim: live code cannot use it)
 #|- observed : g

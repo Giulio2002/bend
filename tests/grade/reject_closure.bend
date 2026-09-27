@@ -19,6 +19,7 @@ law dupf:
 def dupf(f):
   f(f(Zero{}))
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : Data
 #|- observed : Type
@@ -27,4 +28,5 @@ def dupf(f):
 #|16>|   for +f: Nat -> Nat
 #|   |           ^^^^^^^^^^
 #|17 |   Nat
+#|Note: +f can be used many times, so its type must be Data.
 #|exit 1

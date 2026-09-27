@@ -8,6 +8,7 @@ law main:
 def main():
   ((1 < 2) + 5 : U32)
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : U32
 #|- observed : Bool

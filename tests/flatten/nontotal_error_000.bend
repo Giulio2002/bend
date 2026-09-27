@@ -21,6 +21,7 @@ law main:
 
 def main(): f(Sx6{Zx6{}})
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : cases for Zx6
 #|- observed : \{}

@@ -148,6 +148,7 @@ def main():
   d = chk_access()
   (a * 1000 + b * 100 + c * 10 + d : U32)
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a defined name
 #|- observed : JSON

@@ -41,6 +41,7 @@ def use.at(n, h, m):
 def use(n, h):
   use.at(n, h, dbl(n))
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : U32
 #|- observed : MNat

@@ -116,8 +116,9 @@ anything. A loop bounded by the outside world, like a server's, counts down a
 `Nat` fuel argument instead, and two mutually recursive functions become one def
 with an extra argument selecting which to run. A `def` marked `@unsafe` recurses
 freely and may call a def written below it, but falls outside Bend's proof
-guarantees. Types are not code, so the order binds only defs: two datatypes, or
-a datatype and a type-level def, may name each other in any order.
+guarantees: `bend` runs it, but a check prints SOME PROOFS FAIL and names every
+def that relies on it. Types are not code, so the order binds only defs: two
+datatypes, or a datatype and a type-level def, may name each other in any order.
 
 A `match` inspects a parameter or a variable bound by a pattern, never a
 computed value: `match sum(xs, 0):` is rejected. Scrutinees follow binder order,
@@ -319,9 +320,16 @@ By convention, a project keeps its laws in two files at its root. `LAWS.bend`
 imports the code and states the laws, each an open claim: the human writes it,
 the AI does not touch it. `PROOF.bend` imports `LAWS.bend` and proves each law
 with a def of the same name (`law sorted` is proven by `def Laws.sorted`): the
-AI writes it, along with the code. `bend PROOF.bend` is the gate: it fails while
-any law is open or false, and prints "All terms check." once every law holds.
+AI writes it, along with the code. `bend PROOF.bend` is the gate: it prints
+SOME PROOFS FAIL while any law is open or false, and ALL PROOFS CHECK once every
+law holds.
 bend refuses a `PROOF.bend` that sits beside a `LAWS.bend` without importing it.
+
+`bend PROOF.bend --verdict` checks the proofs a second time, with a small kernel
+that has a proof in Lean: it prints ALL PROOFS CHECK only when every def outside
+Base is a valid proof, which bend2 and the kernel both accept, and which relies
+on no `@unsafe` or foreign code. `-o PROOF.bendtt` writes the translation the
+kernel reads; the translation has no proof, so read it to confirm a law.
 
 Bend has no tactics: a proposition is a type, and a proof is a def of that type.
 `{a == b : T}` is an equality; `{==}` proves it when both sides compute to the
@@ -363,9 +371,14 @@ def main() -> IO(Unit):
 Every bind is annotated, and `x : T = v` binds a pure value in the middle of a
 block. A fallible effect answers `Result<&1, &1, U32 & String, A>`: `IO.try`
 unwraps it or exits with the error, and `IO.die` exits with your own. `IO.args`
-answers the command line, less the runtime's own options (a `--` ends them). A
-handle (`File`, `Socket`, `Window`) is an affine, opaque value, so every effect
-on one hands it back beside its result, and no program can forge or reuse one.
+answers the command line, less the runtime's own options (a `--` ends them):
+its head is the program as invoked, like C's `argv[0]`. A handle (`File`,
+`Socket`, `Window`) is an affine, opaque value, so every effect on one hands it
+back beside its result, and no program can forge or reuse one.
+
+`TCP.listen(host, port)` and `UDP.bind(host, port)` bind the IPv4 literal
+`host`: `"127.0.0.1"` serves this machine only, `"0.0.0.0"` every interface.
+A bad address or a port above 65535 fails with `EINVAL`.
 
 `Process.run(program, args, input, max_output, timeout_ms)` starts an
 executable directly, with literal arguments rather than a shell. It inherits
@@ -385,16 +398,19 @@ Node.js: each runs its pure code (in parallel, on every core) up to its next
 effect, and one that waits on a socket, a sleep or a channel steps aside for the
 others. `IO.fork` starts a computation and returns the channel its result will
 arrive on; `IO.join` waits for it. Underneath are `IO.spawn`, `Chan.new`,
-`Chan.send`, `Chan.recv` and `Chan.close`. The program ends when every
-computation is done, or reports a deadlock when the remaining ones all wait.
+`Chan.send`, `Chan.recv` and `Chan.close`. `IO.within(A, ms, act)` races `act`
+against a deadline and answers `None{}` if the deadline wins; the loser is not
+cancelled. The program ends when every computation is done, or reports a
+deadlock when the remaining ones all wait.
 
 Every effect in Base is a def whose body is `import "./x.js"` plus a `.c` twin,
 implemented by a host function named after the def, lowercased, dots to
 underscores. You can add your own effects the same way. Only the event loop runs
 them, so proofs, termination and the GPU never touch host code. In the other
 direction, a JS file may `import Game from "./game.bend"` (with `bend2/main.ts`
-preloaded) and call every non-IO def, with constructors as `{$: "Name", field:
-value}` and `Nat` as `BigInt`. A value crosses without a copy: an `Array`
+preloaded), or from the `./game.mjs` that `-o game.mjs` writes, and call every
+non-IO def, with constructors as `{$: "Name", field: value}` and `Nat` as
+`BigInt`. A value crosses without a copy: an `Array`
 argument is the caller's own array, updated in place, so copy it first if you
 keep it.
 
@@ -444,7 +460,13 @@ def main() -> IO(Unit):
 
 An `Image` is a quadtree: `Pix{color}` paints a square, and `Qua{tl, tr, bl,
 br}` splits it in four, so a frame is drawn by recursion like everything else,
-in parallel if you want. Events are `Key`, `Mouse`, `Move` and `Close`.
+in parallel if you want. Events are `Key`, `Mouse`, `Move`, `Look`, `Scroll`
+and `Close`. `Scroll{x, y, dx, dy}` is a wheel or trackpad under the pointer;
+its signed `F32` deltas scroll toward a page's top and left (a notch is 1 on
+X11). For a first-person camera, `Window.grab(window, True{})` hides and holds
+the cursor, and the mouse's motion comes as `Look{dx, dy}` (signed `F32`, in
+`Move`'s units) until `Window.grab(window, False{})` or the window losing focus
+lets it go.
 `App.run` opens a window and calls `view` then `tick` once per frame, until
 `tick` answers `None`. Since the state is affine, `view` must hand it back next
 to the image. Underneath are `Window.open`, `Window.frame` and `Window.close`,
@@ -526,6 +548,8 @@ bend file.bend            # check; run main (IO compiled; a value normalized)
 bend file.bend -o file    # compile to a native binary (clang 14+; 19+ with `!`)
 bend file.bend -o file.c  # emit the C source instead
 bend file.bend -o file.js # emit the JS source instead
+bend file.bend -o f.mjs   # emit an ES module of its non-IO defs, for JS to import
+bend file.bend --verdict  # check; then recheck with the proven BendTT kernel
 bend page.html -o dist    # bundle a web page that imports .bend files
 ./file --threads 8        # run a native binary on 8 CPU threads
 ./file --gpu off          # run ! calls on the CPU (the GPU is on by default)
@@ -605,7 +629,7 @@ do M<xs.., R>:                           # a monadic block over M.bind, M.pure
 
 Inside `(.. : T)`, `+ - * / %` call `T.add` through `T.mod`, `.&. .|. .^.` the
 bit operations, `<< >>` the shifts (by a `Nat`), and `< <= > >=` the `T.is_lt`
-family; without a `: T` they belong to `Nat`. `&& ||` work on `Bool` and `++` on
+family; without a `: T` they are refused. `&& ||` work on `Bool` and `++` on
 `String` anywhere. Operators need spaces on both sides.
 Equality of values is a call, `T.is_eq(a, b)`; `==` is only the type.
 A `Nat` literal past `256n` is `U32.to_nat(n)` underneath, up to `4294967295n`.
@@ -631,8 +655,9 @@ and a datatype may recurse on the left of an arrow. What keeps this consistent
 is a wall between two checking modes. Code that runs is checked *live*; types,
 erased arguments and equations are checked *dead*. Dead code may loop forever or
 inhabit `Empty`, but nothing dead ever counts as live evidence, and live
-recursion must terminate. `bend2/bend.lean` mechanizes this, though it lags
-`bend.ts`; `paper/BendTT.pdf` is the paper.
+recursion must terminate. `bend2/bendtt.lean` is BendTT's kernel in Lean, with
+a proof that no def it accepts has type `Empty` and that live code halts;
+`--verdict` checks a file with it. `paper/BendTT.pdf` is the paper.
 
 ## Further Reading
 

@@ -8,6 +8,7 @@ law main:
 
 def main(): Ra{Ra{}}
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : Ra with 0 fields
 #|- observed : Ra{Ra{}}

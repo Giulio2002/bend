@@ -7,6 +7,7 @@ law main:
 
 def main(): x => x
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : -x
 #|- observed : x

@@ -25,6 +25,7 @@ law main:
 
 def main(): early(Zn{})
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a filled definition (an unfilled law is a dead claim: live code cannot use it)
 #|- observed : twice

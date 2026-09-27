@@ -4,6 +4,7 @@ law bad:
   exs x: Type
   Type
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a defined name
 #|- observed : Exists

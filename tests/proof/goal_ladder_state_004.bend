@@ -99,6 +99,7 @@ def mul_comm(a, b):
       %mul_comm(p, b) : {add(b, mul(p, b)) == add(b, _) : N}
       Type
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : {add(b, mul(p, b)) == add(b, mul(p, b)) : N}
 #|- observed : Type

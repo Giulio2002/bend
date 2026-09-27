@@ -16,6 +16,7 @@ law main:
 def main():
   0
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a fresh constructor name (duplicate declaration: Mk8b)
 #|- observed : 'Mk8b'

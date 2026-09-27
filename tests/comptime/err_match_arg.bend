@@ -15,6 +15,7 @@ def f(xs: List<Nat>) -> Nat:
 def main() -> Nat:
   f([1n])
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a template applied to closed ~ arguments (h is a variable here, not comptime: pass it at run time)
 #|- observed : T

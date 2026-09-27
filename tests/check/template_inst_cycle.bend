@@ -27,6 +27,7 @@ def absurd(-A: Type, e: Empty) -> A:
 def false_theorem() -> {False{} == True{} : Bit}:
   absurd({False{} == True{} : Bit}, boom())
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a decreasing self-call (arguments are read left to right: each passed unchanged until one shrinks)
 #|- observed : loop

@@ -17,6 +17,7 @@ law main:
 def main():
   (f(0, 1) * 100 + f(5, 1) : U32)
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : '}'
 #|- observed : ':'

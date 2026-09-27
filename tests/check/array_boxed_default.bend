@@ -25,6 +25,7 @@ def main():
   x = h@h2[3] <- PW{0,0}
   val(x)
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a term
 #|- observed : '!'

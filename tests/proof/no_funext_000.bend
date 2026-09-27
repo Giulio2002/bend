@@ -40,6 +40,7 @@ law main:
 
 def main(): Z{}
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : {(x => add(x, Z{})) == (x => x) : @_:N -> N}
 #|- observed : non-inferrable term

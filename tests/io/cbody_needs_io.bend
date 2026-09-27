@@ -17,6 +17,7 @@ law main:
 def main():
   beep(3)
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : '"'
 #|- observed : '.'

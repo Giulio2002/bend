@@ -18,6 +18,7 @@ def thm():
 def q():
   &0
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : q <&> &1
 #|- observed : &1

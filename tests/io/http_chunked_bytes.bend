@@ -71,6 +71,7 @@ law main:
 def main():
   (chk_chunked() * 100 + chk_chunked_bad() * 10 + chk_pack() : U32)
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a defined name
 #|- observed : Bytes.decode

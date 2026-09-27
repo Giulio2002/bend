@@ -26,6 +26,7 @@ law main:
 
 def main(): f(Zw{}, Zw{})
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : 2 patterns (one per scrutinee)
 #|- observed : 'Zw{}, x, Zw{}'

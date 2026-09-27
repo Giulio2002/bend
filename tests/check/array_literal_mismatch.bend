@@ -11,6 +11,7 @@ def main():
   m = (![0:5, _:0; 1] : U32)
   0
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a term
 #|- observed : '!'

@@ -15,6 +15,7 @@ type List<a, -A: Kind(a)> is Kind(a):
 type Foo is Nat:
   MkFoo{}
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a kind (type Foo<..> is Kind(g))
 #|- observed : Nat

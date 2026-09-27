@@ -2,12 +2,13 @@
 // The installer, the compiled bend, its daily check and the hub, on this
 // machine: release.ts --dry (the site repo at lib.SITE) builds this host's
 // target into a temp DL_DIR (the archive, install.sh, bend.rb, latest.json);
-// a hub.ts on a random localhost port logs to a temp file; a Bun.serve plays
-// Caddy and GitHub in front of it (/install.sh with the GitHub URL turned
-// into this origin and the https-only flags dropped, since this origin is
-// plain http; the archive under /dl; the store under /0x<hash>; /check
-// and /ping to the hub); then
-// install.sh runs in a temp HOME over the old launcher's layout. Checks:
+// a hub.ts on a random localhost port, at HUB_POW=1 (bend mines against
+// the hub's pow, so a publish costs one hash), logs to a temp file; a
+// Bun.serve plays Caddy and GitHub in front of it (/install.sh with the
+// GitHub URL turned into this origin and the https-only flags dropped,
+// since this origin is plain http; the archive under /dl; the store under
+// /0x<hash>; /check, /ping and /pow.json to the hub); then install.sh runs
+// in a temp HOME over the old launcher's layout. Checks:
 // bashka (SKIP without it) calls the script green; the install replaces the
 // launcher with the executable, drops app/, current, id, last, rep and bad,
 // cleans its temp dir, writes no shell rc, names the version, the PATH line
@@ -176,8 +177,8 @@ const caddy = Bun.serve({
 
 const hub = child.spawn(process.execPath, [path.join(lib.SITE, "apps", "hub",
   "hub.ts")], { stdio: "ignore", env: { ...process.env, HUB_PORT:
-  String(PORT + 1), HUB_STORE: path.join(TMP, "store"), CHECK_LOG: LOG,
-  DL_DIR: DL } });
+  String(PORT + 1), HUB_POW: "1", HUB_STORE: path.join(TMP, "store"),
+  CHECK_LOG: LOG, DL_DIR: DL } });
 try {
   await hub_wait();
   const rel = await lib.exec(process.execPath, [path.join(lib.SITE, "release",

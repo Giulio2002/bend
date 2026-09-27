@@ -7,6 +7,7 @@ import ./shadow_lib.bend as L
 def main() -> IO(Unit):
   IO.print(Bool.show(L.Nat.add(1n, 2n)))
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a fresh name (duplicate declaration: Nat.add)
 #|- observed : 'Nat.add'

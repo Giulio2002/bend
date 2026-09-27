@@ -5,6 +5,7 @@ import Base
 def main() -> Nat:
   1n +n 2n
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : '='
 #|- observed : '2'

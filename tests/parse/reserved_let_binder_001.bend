@@ -10,6 +10,7 @@ def main():
   do = 1
   2
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a name
 #|- observed : '='

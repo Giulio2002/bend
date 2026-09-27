@@ -40,6 +40,7 @@ def ones_twos(n):
     case 1n+n:
       {==}
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : S{ones(n)}
 #|- observed : S{twos(n)}

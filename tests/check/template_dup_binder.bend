@@ -11,6 +11,7 @@ def cast(~T: Type, ~x: T, ~T: Type) -> T:
 def main() -> Unit:
   Unit{}
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a fresh ~ binder name
 #|- observed : T

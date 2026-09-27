@@ -7,6 +7,7 @@ import Base
 def main() -> U32:
   {(x => x) : Nat -> Nat}(1)
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : Nat
 #|- observed : U32

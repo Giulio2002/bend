@@ -17,6 +17,7 @@ law main:
 def main():
   f(1)!
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : 'def', 'type' or 'law'
 #|- observed : '!'

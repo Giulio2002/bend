@@ -7,6 +7,7 @@ law main:
 
 def main(): \{}
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a datatype
 #|- observed : @_:U32 -> U32

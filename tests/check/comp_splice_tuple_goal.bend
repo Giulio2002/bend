@@ -24,6 +24,7 @@ def main():
   (a, b) = wrap(y => (y + 1 : U32), 34)
   (a + b : U32)
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- message  : a parameter or field scrutinee (a match cannot scrutinize a computed value: give it its own def)
 #|Location:

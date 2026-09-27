@@ -20,6 +20,7 @@ law main:
 
 def main(): f(Zx{})
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a do-block heading this return
 #|- observed : 'return'

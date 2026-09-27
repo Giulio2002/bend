@@ -96,6 +96,7 @@ def mul_comm(a, b):
     case S{p}:
       Type
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : {add(b, mul(p, b)) == mul(b, S{p}) : N}
 #|- observed : Type

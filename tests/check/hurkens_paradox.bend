@@ -109,6 +109,7 @@ law main:
 
 def main(): Uu{}
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : f
 #|- observed : f (consumed more than once)

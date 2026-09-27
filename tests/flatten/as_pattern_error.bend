@@ -21,6 +21,7 @@ law main:
 def main():
   0
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : 4 patterns (one per scrutinee)
 #|- observed : 'True{}, True{}'

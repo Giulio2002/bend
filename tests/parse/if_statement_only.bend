@@ -16,6 +16,7 @@ law main:
 def main():
   IO.print(Nat.show(main.out()))
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : an annotated term (cannot infer)
 #|- observed : \{True: 1n; False: 0n}

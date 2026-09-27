@@ -11,6 +11,7 @@ def sum3(a: Nat, b: Nat, c: Nat) -> Nat:
 def main() -> Nat:
   sum3(1n, 2n, 3n)
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- message  : a type for this operator (write (a + b : Nat))
 #|Location:

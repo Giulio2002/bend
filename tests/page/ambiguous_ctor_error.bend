@@ -21,6 +21,7 @@ law main:
 
 def main(): f(K{1})
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a fresh constructor name (duplicate declaration: K)
 #|- observed : 'K'

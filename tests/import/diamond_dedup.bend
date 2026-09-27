@@ -11,6 +11,7 @@ law main:
 def main():
   0
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- message  : no such file: /diamond/top.bend
 #|Location:

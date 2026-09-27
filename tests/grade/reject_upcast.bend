@@ -19,6 +19,7 @@ law up:
 def up(xs):
   xs
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : List<&2, Nat>
 #|- observed : List<&1, Nat>

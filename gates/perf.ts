@@ -289,7 +289,7 @@ async function chk_run(c: Chk, node: number): Promise<void> {
   if (runs.length === 0) {
     throw new Error("node", { cause: got.err });
   }
-  if (runs.some((r) => r[1] !== "0") || !got.out.includes("All terms check.")) {
+  if (runs.some((r) => r[1] !== "0") || !got.out.includes("ALL PROOFS CHECK")) {
     c.note = c.bench + ": " + cell_note(got.out);
     return;
   }

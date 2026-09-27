@@ -21,6 +21,7 @@ law main:
 def main():
   pick(1)
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : Bool
 #|- observed : U32

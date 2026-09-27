@@ -29,6 +29,7 @@ def seed() -> Pick(~ANode{ALeaf{Unit{}}, ANode{ALeaf{Unit{}}, ALeaf{Unit{}}}}):
 def contradiction() -> Pick(~ANode{ANode{ALeaf{Unit{}}, ALeaf{Unit{}}}, ALeaf{Unit{}}}):
   seed
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : Empty
 #|- observed : Unit

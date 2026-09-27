@@ -14,6 +14,7 @@ def extract(n: Nat) -> Empty:
 def boom() -> Empty:
   extract(1n)
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a declared constructor (Empty declares )
 #|- observed : 0n

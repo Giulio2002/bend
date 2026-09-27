@@ -18,6 +18,7 @@ type List<a, -A: Kind(a)> is Kind(a):
 type Cp<-T: Type, -x: T> is Data:
   MkCp{y: T, e: {x == y : T}}
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : Data
 #|- observed : Type

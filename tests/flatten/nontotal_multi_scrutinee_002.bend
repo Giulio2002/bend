@@ -35,6 +35,7 @@ law main:
 
 def main(): f(Zz2b{}, Nl2{}, Zz2b{}, Nl2{})
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : cases for Cl2
 #|- observed : \{}

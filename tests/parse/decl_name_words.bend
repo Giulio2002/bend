@@ -8,6 +8,7 @@ def Vec.2d() -> U32:
 def main() -> U32:
   Vec.2d()
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a name (words joined by dots, got 'Vec.2d')
 #|- observed : 'Vec.2d'

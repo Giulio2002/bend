@@ -15,6 +15,7 @@ type List<a, -A: Kind(a)> is Kind(a):
 type Knot is Data:
   KRoll{run: Knot -> Empty}
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : Data
 #|- observed : Type

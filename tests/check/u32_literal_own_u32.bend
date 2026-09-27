@@ -7,6 +7,7 @@ type U32 is Data:
 def n() -> U32:
   5
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a declared constructor (U32 declares Foo)
 #|- observed : 5

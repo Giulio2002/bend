@@ -22,6 +22,7 @@ law main:
 def main():
   [1] ++ [2]
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : String
 #|- observed : List

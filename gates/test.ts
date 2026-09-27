@@ -41,6 +41,9 @@ const MARK = "@@B4";
 
 const BUN = lib.BUN;
 
+// the head of a failed check's output, or of a failed program's
+const FAILS = /^(SOME PROOFS FAIL|Error:)/;
+
 // Test
 // ====
 
@@ -66,13 +69,17 @@ function test_path(t: Test): string {
   return t.name.replace("_", "/") + ".bend";
 }
 
+// a test that fails: its check (SOME PROOFS FAIL) or its program (Error:)
+function test_fails(t: Test): boolean {
+  return FAILS.test(t.want);
+}
+
 function test_runs(shard: Test[]): Test[] {
-  return shard.filter((t) => t.main && t.lanes.length > 0
-    && !t.want.startsWith("Error:"));
+  return shard.filter((t) => t.main && t.lanes.length > 0 && !test_fails(t));
 }
 
 function test_probes(t: Test, got: Got): string[] {
-  if (!t.main || t.want.startsWith("Error:")) {
+  if (!t.main || test_fails(t)) {
     return ["check"];
   }
   const shown = !/^Error: main's type .* cannot be printed/m.test(got.left ?? "");
@@ -84,8 +91,8 @@ function test_judge(t: Test, got: Got): Fail[] {
   for (const probe of test_probes(t, got)) {
     const seen = got[probe === "interp" ? "check" : probe] ?? got.left
       ?? "(no answer from the node)";
-    const ok = probe === "check" && t.main && !t.want.startsWith("Error:")
-      ? !seen.startsWith("Error:") : seen === t.want;
+    const ok = probe === "check" && t.main && !test_fails(t)
+      ? !FAILS.test(seen) : seen === t.want;
     if (!ok) {
       fails.push({ name: t.name, probe, want: t.want, got: seen });
     }

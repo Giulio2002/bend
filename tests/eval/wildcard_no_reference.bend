@@ -9,6 +9,7 @@ law main:
 def main():
   _ => _
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a defined name
 #|- observed : _^

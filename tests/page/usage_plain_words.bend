@@ -17,6 +17,7 @@ law c2:
 def c2():
   TLam{f => TLam{x => TApp{f, TApp{f, x}}}}
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : f
 #|- observed : f (consumed more than once)

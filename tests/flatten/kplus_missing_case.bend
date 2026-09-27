@@ -21,6 +21,7 @@ law main:
 def main():
   f(3)
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : 1 patterns (one per scrutinee)
 #|- observed : '2+k'

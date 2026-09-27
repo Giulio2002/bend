@@ -5,6 +5,7 @@ import Base
 def main() -> Nat:
   {2n * 3n : Nat}
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- message  : a type for this operator (write (a * b : Nat))
 #|Location:

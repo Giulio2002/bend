@@ -71,6 +71,7 @@ def mul_succ(a, b):
     case S{p}:
       Type
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : {S{add(p, add(b, mul(p, b)))} == S{add(b, mul(p, S{b}))} : N}
 #|- observed : Type

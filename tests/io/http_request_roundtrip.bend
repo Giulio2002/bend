@@ -129,6 +129,7 @@ law main:
 def main():
   (chk_parse() * 1000 + chk_roundtrip() * 100 + chk_response() * 10 + chk_bad() : U32)
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a defined name
 #|- observed : HTTP.get_header

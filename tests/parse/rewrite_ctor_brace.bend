@@ -26,6 +26,7 @@ law main:
 
 def main(): Uu8{}
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : @_:Opt8<Un8> -> Opt8<Un8>
 #|- observed : @_:Opt8<Emp8> -> Opt8<Emp8>

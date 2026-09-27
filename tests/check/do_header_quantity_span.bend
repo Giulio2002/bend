@@ -21,6 +21,7 @@ def r() -> M<&1, U32>:
 def main() -> U32:
   0
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : Type
 #|- observed : Quant

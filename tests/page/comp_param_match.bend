@@ -19,6 +19,7 @@ law main:
 def main():
   t(x => (x + 1 : U32))
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : an annotated term (cannot infer)
 #|- observed : \{U32: (w => 0)}

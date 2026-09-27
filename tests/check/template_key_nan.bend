@@ -39,6 +39,7 @@ def seed() -> Pick(~F32{WCon{False{}, WCon{False{}, WCon{False{}, WCon{False{}, 
 def contradiction() -> Pick(~F32{WCon{True{}, WCon{False{}, WCon{False{}, WCon{False{}, WCon{False{}, WCon{False{}, WCon{False{}, WCon{False{}, WCon{False{}, WCon{False{}, WCon{False{}, WCon{False{}, WCon{False{}, WCon{False{}, WCon{False{}, WCon{False{}, WCon{False{}, WCon{False{}, WCon{False{}, WCon{False{}, WCon{False{}, WCon{False{}, WCon{True{}, WCon{True{}, WCon{True{}, WCon{True{}, WCon{True{}, WCon{True{}, WCon{True{}, WCon{True{}, WCon{True{}, WCon{False{}, WNil{}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}):
   seed
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : Empty
 #|- observed : Unit

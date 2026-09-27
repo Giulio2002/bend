@@ -34,6 +34,6 @@ def main() -> IO(Unit):
   do IO<Unit>:
     args : List<String> <- IO.args()
     +x : U32 = U32.from_nat(List.length(&1, String, args))
-    IO.print(after([mk256((x + 401 : U32)), mk256((x + 401 : U32)), mk256((x + 401 : U32)), mk256((x + 401 : U32)), mk256((x + 401 : U32)), mk256((x + 401 : U32))], (x + 501 : U32)))
+    IO.print(after([mk256((x + 400 : U32)), mk256((x + 400 : U32)), mk256((x + 400 : U32)), mk256((x + 400 : U32)), mk256((x + 400 : U32)), mk256((x + 400 : U32))], (x + 500 : U32)))
 
 #|501/501

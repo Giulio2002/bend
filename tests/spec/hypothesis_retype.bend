@@ -41,6 +41,7 @@ law main:
 def main():
   repro(0n, 0n, {==})
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : 3 patterns (one per scrutinee)
 #|- observed : 'True{}'

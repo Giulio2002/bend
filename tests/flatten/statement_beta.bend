@@ -18,6 +18,7 @@ law main:
 def main():
   usem(\{0: 9; n => (n * 2 : U32)})
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : '}'
 #|- observed : ':'

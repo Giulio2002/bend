@@ -28,6 +28,7 @@ law main:
 def main(x):
   tpl(0n, 1n, {==}, y => y, x)
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a plain clause (only leading clauses take ~)
 #|- observed : '~'

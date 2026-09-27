@@ -4,6 +4,7 @@ def bad(e: {Type == Type : Type}) -> Type:
   %h@e : h
   Type
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : Type
 #|- observed : {Type == _ : Type}

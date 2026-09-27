@@ -16,6 +16,7 @@ law main:
 def main():
   f(3)
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : x
 #|- observed : x (consumed more than once)

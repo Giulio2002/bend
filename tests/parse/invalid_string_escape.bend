@@ -13,6 +13,7 @@ law main:
 
 def main(): 0
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : an escape (\n \t \r \0 \\ \' \" \u{1F600})
 #|- observed : 'b'

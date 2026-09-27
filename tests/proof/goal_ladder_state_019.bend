@@ -57,6 +57,7 @@ def rgo_cat(A, xs, acc):
     case h <> t:
       Type
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : {LL.append(A, LL.reverse.go(A, t, [h]), acc) == LL.reverse.go(A, t, h <> acc) : List<&2, A>}
 #|- observed : Type

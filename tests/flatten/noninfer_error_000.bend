@@ -14,6 +14,7 @@ law main:
 
 def main(): (\{Zx5: Bx5{Zx5{}}; Sx5: x => Ax5{x}})(Zx5{})
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : an annotated term (cannot infer)
 #|- observed : \{Zx5: Bx5{Zx5{}}; Sx5: (x => Ax5{x})}

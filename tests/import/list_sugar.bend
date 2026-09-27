@@ -11,6 +11,7 @@ def main():
   h = [Zx{}]
   Zx{}
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a declared constructor
 #|- observed : [Zx{}]

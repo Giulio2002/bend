@@ -13,6 +13,7 @@ def g(b: Aa) -> U32:
 def main() -> U32:
   g(Kk{1, 2})
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- message  : a name (a parallel or typed let binds names; destructure in its body)
 #|Location:

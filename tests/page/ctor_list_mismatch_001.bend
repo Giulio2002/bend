@@ -19,6 +19,7 @@ law main:
 
 def main(): not(T{})
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- message  : a declared constructor (unknown: Tr)
 #|Location:

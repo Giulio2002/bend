@@ -9,6 +9,7 @@ law main:
 def main():
   Bytes.encode("banana")
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a defined name
 #|- observed : Bytes.encode

@@ -7,6 +7,7 @@ type F32 is Data:
 def n() -> F32:
   1.5
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a declared constructor (F32 declares Foo)
 #|- observed : 1.5

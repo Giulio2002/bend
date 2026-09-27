@@ -18,6 +18,7 @@ law main:
 def main():
   0
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a fresh name (duplicate declaration: Nat.add)
 #|- observed : 'Nat.add'

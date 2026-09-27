@@ -203,7 +203,7 @@ def add_zero(x):
 - Base: [base.bend](bend2/base.bend), the base library, also printed by `bend base`.
 - Paper: [BendTT: An Affine Dependent Type Theory](paper/BendTT.pdf).
 - Paper: [BendRT: A Parallel Runtime for CPUs and GPUs](paper/BendRT.pdf).
-- Formalization: [bend.lean](bend2/bend.lean), Bend's core in Lean.
+- Formalization: [bendtt.lean](bend2/bendtt.lean), the kernel of `--verdict` and its proofs, in Lean.
 - Benches: [bench/](bench), every bench used to make the charts above.
 - Formatter: [bend-fmt-lsp](tools/bend-fmt-lsp), a formatting-only Bend 2 language server.
 - Community language server: [bend2-lsp](https://github.com/don2e4/bend2-lsp), with formatting, diagnostics, and hover.
@@ -224,7 +224,7 @@ def add_zero(x):
 - No type classes, no traits, and no macros beyond compile-time templates.
 - Bend has no tactics or proof search; proving theorems takes extra effort.
 - Values are affine: closures and arrays cannot be shared.
-- Recursion must be terminating. (Use `@unsafe`, or `def f?(..)`, to disable this checker.)
+- Recursion must terminate; `@unsafe` or `def f?(..)` turns the check off.
 - Computed matches (`match f(x)`) aren't supported. Must split it manually.
 - There is no syntax for if-then-else: a branch is a match on True and False.
 - Numbers are Nat, U32 and F32 only: no U64, I64 or F64 (Metal has no f64).
@@ -232,23 +232,23 @@ def add_zero(x):
 - Strings are linked lists of characters, so text processing is slow.
 - Base is small: expect to write helpers other languages ship built in.
 - Effects are few: print, env, time, sleep, spawn, channels, files, TCP, UDP.
-- No TLS, HTTP library, JSON or regex for now (but you can add them as foreigns).
+- No TLS, HTTP library, JSON or regex for now (you can add them as foreigns).
 - Targets are C, Metal, CUDA and JavaScript; Lua, Luau and Python are planned.
 - The JavaScript target runs on one core and has no graphics or audio.
 - Parallelism requires balanced calls. Flexible parallelism will be added later.
-- Sharing arrays with atomics across threads is experimental and needs `@unsafe`.
+- Atomic arrays shared across threads are experimental and need `@unsafe`.
 - One GPU per program, one event loop, and no multi-machine execution yet.
 - One C file per program: no separate compilation, no incremental builds.
 - Compiling to native is slow (clang/CUDA/Metal). For fast development, use JS.
 - The compiler is young and has blind spots (unusually slow programs). Report.
 - We don't have as many benchmarks as we'd like yet, especially for the checker.
-- The compiler (not kernel) is 99% AI-written and has not been fully audited yet.
-- The Lean formalization and bend.ts mismatch. Early consistency bugs may occur.
+- The compiler (not kernel) is 99% AI-written and not yet fully audited.
+- The checker has no proof and may have bugs; `--verdict` uses a proven kernel.
 - A binary needs clang 14+; ! needs 19+, Metal or CUDA 12.
 - No Windows (WSL works); on Linux, Window and Audio need X11 and ALSA headers.
 - The hub has no names, versions, accounts or search yet. Packages are hashes.
 - Error messages are terse; no debugger, profiler or REPL.
-- The bundled editor support is limited to formatting; the community [bend2-lsp](https://github.com/don2e4/bend2-lsp) provides diagnostics and hover, but no completion.
+- The editor tool only formats; the community bend2-lsp adds errors and hover.
 - No test framework and no documentation beyond the guide.
 - And more that escape me. Be patient, report bugs and request features!
 

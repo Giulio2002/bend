@@ -11,6 +11,7 @@ law main:
 
 def main(): foo$bar
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : '('
 #|- observed : '$'

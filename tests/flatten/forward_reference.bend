@@ -32,6 +32,7 @@ type Nt is Data:
   Zn{}
   Sn{p: Nt}
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- message  : a declared constructor (unknown: Zn)
 #|Location:

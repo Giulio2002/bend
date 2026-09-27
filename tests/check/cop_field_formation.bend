@@ -12,6 +12,7 @@ law main:
 
 def main(): 0n
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : Data
 #|- observed : Type

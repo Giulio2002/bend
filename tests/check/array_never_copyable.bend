@@ -27,6 +27,7 @@ law main:
 def main():
   dupa(arr())
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a term
 #|- observed : ':'

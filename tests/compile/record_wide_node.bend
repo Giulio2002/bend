@@ -1,7 +1,7 @@
 # a constructor past WIDE (247) words is one node, walked as an array, and
 # its value travels boxed: R2 is 512 words of R1 (64 each, flat), R3
 # exactly 256; a def whose parameters span past WIDE words takes its wide
-# ones boxed, so its segment fits FID_ARITY_T (u8): sum4 takes 4 x 64
+# ones boxed, so its segment fits FID_T (u8): sum4 takes 4 x 64
 # words and forks, so it is a segment, not a flat C helper (#944)
 import Base
 

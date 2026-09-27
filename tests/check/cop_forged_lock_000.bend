@@ -29,6 +29,7 @@ law main:
 def main():
   Type
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : Data
 #|- observed : Type
@@ -37,4 +38,5 @@ def main():
 #|20>|   for +x: Aff
 #|   |           ^^^
 #|21 |   Two
+#|Note: +x can be used many times, so its type must be Data.
 #|exit 1

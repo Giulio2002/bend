@@ -9,6 +9,7 @@ law main:
 
 def main(): Unit{}
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a name (got the keyword 'match')
 #|- observed : 'match'

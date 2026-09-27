@@ -11,6 +11,7 @@ law main:
 def main():
   F32.sqrt(1.0, 2.0)
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a function type
 #|- observed : F32

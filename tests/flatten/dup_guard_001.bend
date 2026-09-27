@@ -19,6 +19,7 @@ def main(a):
     case S{p}, x:
       R1{}
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- message  : a match on a parameter or field (this name is a def or a consumed binder: give the value its own def)
 #|Location:

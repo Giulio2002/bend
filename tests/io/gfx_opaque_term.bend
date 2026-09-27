@@ -16,6 +16,7 @@ def main():
     ws : List<U32> <- GFX.gfx_events()
     GFX.blit(GFX.qua(GFX.pix(1), GFX.pix(2), GFX.pix(3), GFX.qua(GFX.pix(4), GFX.pix(5), GFX.pix(6), GFX.pix(7))))
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a defined name
 #|- observed : GFX.window

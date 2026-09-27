@@ -9,6 +9,7 @@ law th:
 def th(n):
   ?help
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : {Nat.add(n, 0n) == n : Nat}
 #|- observed : ?help

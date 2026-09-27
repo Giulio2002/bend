@@ -21,6 +21,7 @@ law main:
 def main():
   main.go(U32.is_eq(3, 3))
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a constructor of Bool (missing, or already matched)
 #|- observed : \{Con: (h => t => h); Nil: 0}

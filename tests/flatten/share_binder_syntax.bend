@@ -14,6 +14,7 @@ def main(v):
   &y = v
   y
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : ':'
 #|- observed : '='

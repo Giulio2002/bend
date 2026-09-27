@@ -4,6 +4,7 @@
 def add(x, y):
   x
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : '->' (a def with no return type fills a law; no law named add is in scope)
 #|- observed : ':'
