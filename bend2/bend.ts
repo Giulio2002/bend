@@ -3048,109 +3048,56 @@ export function term_snf(book: Book, term: HTerm): HTerm {
 
 type SameMemo = {
   left: number;
-  seen?: WeakMap<HTerm, WeakSet<HTerm>>;
 };
 
-function same_get(memo: SameMemo, a: HTerm, b: HTerm): boolean | undefined {
-  return memo.seen?.get(a)?.has(b) ? true : undefined;
-}
+// term_same is synchronous and never calls term_compare; keep its pair stack
+// per worker and reuse it instead of allocating one array for every compare.
+const SAME_STACK: HTerm[] = [];
 
-function same_cacheable(a: HTerm, b: HTerm): boolean {
-  return a.$ === b.$ && (a.$ === "App" || a.$ === "Eql"
-    || a.$ === "Ctr" || a.$ === "ADT");
-}
-
-function same_set(memo: SameMemo, a: HTerm, b: HTerm): void {
-  let seen = memo.seen;
-  if (seen === undefined) {
-    seen = new WeakMap();
-    memo.seen = seen;
-  }
-  let row = seen.get(a);
-  if (row === undefined) {
-    row = new WeakSet();
-    seen.set(a, row);
-  }
-  row.add(b);
-}
-
-type SameFrame = { a: HTerm; b: HTerm; kids?: [HTerm, HTerm][]; next: number };
-
-// Proven-equal node pairs are memoized across recursive calls to
-// term_compare; exhausting the shared budget means unknown.
+// One visit budget is shared by the recursive calls in a comparison. This
+// bounds all identity-walk overhead without a memo table; exhaustion is unknown.
 function term_same(lhs: HTerm, rhs: HTerm, memo: SameMemo): boolean {
-  const st: SameFrame[] = [{ a: lhs, b: rhs, next: 0 }];
+  const st = SAME_STACK;
+  st.length = 0;
+  st.push(lhs, rhs);
   while (st.length > 0) {
-    const frame = st[st.length - 1];
-    const a = term_strip(frame.a);
-    const b = term_strip(frame.b);
-    frame.a = a;
-    frame.b = b;
-
-    if (frame.kids === undefined) {
-      if (a === b || (same_cacheable(a, b) && same_get(memo, a, b) === true)) {
-        st.pop();
-        continue;
-      }
-      if (memo.left === 0) return false;
-      memo.left--;
-      if (a.$ !== b.$) {
-        return false;
-      }
-      switch (a.$) {
-        case "Var":
-          if (a.i < 0 || a.i !== (b as typeof a).i) {
-            return false;
-          }
-          st.pop();
-          continue;
-        case "Ref":
-          if (a.k !== (b as typeof a).k) {
-            return false;
-          }
-          st.pop();
-          continue;
-        case "Lit":
-          if (a.k !== (b as typeof a).k || a.v !== (b as typeof a).v) {
-            return false;
-          }
-          st.pop();
-          continue;
-        case "App": {
-          const x = b as typeof a;
-          frame.kids = [[a.f, x.f], [a.x, x.x]];
-          break;
-        }
-        case "Eql": {
-          const x = b as typeof a;
-          frame.kids = [[a.a, x.a], [a.b, x.b], [a.T, x.T]];
-          break;
-        }
-        case "Ctr":
-        case "ADT": {
-          const x = b as typeof a;
-          if (a.k !== x.k || a.x.length !== x.x.length
-              || (a.$ === "ADT" && a.r.join() !== (x as typeof a).r.join())) {
-            return false;
-          }
-          frame.kids = a.x.map((field, i) => [field, x.x[i]]);
-          break;
-        }
-        case "Rfl": case "Efq":
-          st.pop();
-          continue;
-        default:
+    if (memo.left === 0) {
+      st.length = 0;
+      return false;
+    }
+    memo.left--;
+    const b = term_strip(st.pop()!);
+    const a = term_strip(st.pop()!);
+    if (a === b) continue;
+    if (a.$ !== b.$) {
+      st.length = 0;
+      return false;
+    }
+    const x = b as typeof a;
+    switch (a.$) {
+      case "Var": if (a.i < 0 || a.i !== (x as typeof a).i) { st.length = 0; return false; } break;
+      case "Ref": if (a.k !== (x as typeof a).k) { st.length = 0; return false; } break;
+      case "Lit": if (a.k !== (x as typeof a).k || a.v !== (x as typeof a).v) { st.length = 0; return false; } break;
+      case "App": st.push(a.x, (x as typeof a).x, a.f, (x as typeof a).f); break;
+      case "Eql": st.push(a.T, (x as typeof a).T, a.b, (x as typeof a).b, a.a, (x as typeof a).a); break;
+      case "Ctr":
+      case "ADT": {
+        const y = x as typeof a;
+        if (a.k !== y.k || a.x.length !== y.x.length
+            || (a.$ === "ADT" && a.r.join() !== (y as typeof a).r.join())) {
+          st.length = 0;
           return false;
+        }
+        for (let j = a.x.length - 1; j >= 0; j--) st.push(a.x[j], y.x[j]);
+        break;
       }
-    } else if (frame.next < frame.kids.length) {
-      const [x, y] = frame.kids[frame.next++];
-      st.push({ a: x, b: y, next: 0 });
-    } else {
-      if (same_cacheable(a, b)) same_set(memo, a, b);
-      st.pop();
+      case "Rfl": case "Efq": break;
+      default:
+        st.length = 0;
+        return false;
     }
   }
-  return true;
+  return st.length === 0;
 }
 
 // Only a side that is a call can be expensive to normalize; two values
@@ -3168,8 +3115,9 @@ export function term_compare(mode: "EQ" | "LE", book: Book, lhs: HTerm, rhs: HTe
 
 function term_compare_inner(mode: "EQ" | "LE", book: Book, lhs: HTerm,
   rhs: HTerm, dep: number, same: SameMemo): boolean {
-  if (lhs === rhs || ((term_call(lhs) || term_call(rhs)) && term_same(lhs, rhs, same))) {
-    return true;
+  if (lhs === rhs) return true;
+  if (term_call(lhs) || term_call(rhs)) {
+    if (term_same(lhs, rhs, same)) return true;
   }
   let a = term_wnf(book, lhs);
   let b = term_wnf(book, rhs);
