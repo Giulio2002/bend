@@ -3210,7 +3210,10 @@ function term_compare_inner(mode: "EQ" | "LE", book: Book, lhs: HTerm,
       if (mode === "EQ" && a.r.length !== b.r.length) {
         return false;
       }
-      return b.r.every((c) => a.r.includes(c))
+      // A constructor can retain many residual parameter names. Repeated
+      // Array.includes makes subset checking quadratic for large residuals.
+      const names = a.r.length >= 32 && b.r.length >= 8 ? new Set(a.r) : null;
+      return b.r.every((c) => names === null ? a.r.includes(c) : names.has(c))
           && a.x.every((x, j) => term_compare_inner("EQ", book, x, b.x[j], dep, same));
     }
     case "Ctr": {
