@@ -3048,37 +3048,36 @@ export function term_snf(book: Book, term: HTerm): HTerm {
 
 type SameMemo = {
   left: number;
-  pairs?: WeakMap<HTerm, WeakMap<HTerm, boolean>>;
+  seen?: WeakMap<HTerm, WeakSet<HTerm>>;
 };
 
 function same_get(memo: SameMemo, a: HTerm, b: HTerm): boolean | undefined {
-  return memo.pairs?.get(a)?.get(b);
+  return memo.seen?.get(a)?.has(b) ? true : undefined;
 }
 
-function same_set(memo: SameMemo, a: HTerm, b: HTerm, same: boolean): void {
-  let pairs = memo.pairs;
-  if (pairs === undefined) {
-    pairs = new WeakMap();
-    memo.pairs = pairs;
+function same_cacheable(a: HTerm, b: HTerm): boolean {
+  return a.$ === b.$ && (a.$ === "App" || a.$ === "Eql"
+    || a.$ === "Ctr" || a.$ === "ADT");
+}
+
+function same_set(memo: SameMemo, a: HTerm, b: HTerm): void {
+  let seen = memo.seen;
+  if (seen === undefined) {
+    seen = new WeakMap();
+    memo.seen = seen;
   }
-  let row = pairs.get(a);
+  let row = seen.get(a);
   if (row === undefined) {
-    row = new WeakMap();
-    pairs.set(a, row);
+    row = new WeakSet();
+    seen.set(a, row);
   }
-  row.set(b, same);
-  let col = pairs.get(b);
-  if (col === undefined) {
-    col = new WeakMap();
-    pairs.set(b, col);
-  }
-  col.set(a, same);
+  row.add(b);
 }
 
 type SameFrame = { a: HTerm; b: HTerm; kids?: [HTerm, HTerm][]; next: number };
 
-// Structural identity is memoized across recursive calls to term_compare.
-// `false` means the terms differ; exhausting the shared budget means unknown.
+// Proven-equal node pairs are memoized across recursive calls to
+// term_compare; exhausting the shared budget means unknown.
 function term_same(lhs: HTerm, rhs: HTerm, memo: SameMemo): boolean {
   const st: SameFrame[] = [{ a: lhs, b: rhs, next: 0 }];
   while (st.length > 0) {
@@ -3089,43 +3088,32 @@ function term_same(lhs: HTerm, rhs: HTerm, memo: SameMemo): boolean {
     frame.b = b;
 
     if (frame.kids === undefined) {
-      if (a === b || same_get(memo, a, b) === true) {
+      if (a === b || (same_cacheable(a, b) && same_get(memo, a, b) === true)) {
         st.pop();
         continue;
-      }
-      if (same_get(memo, a, b) === false) {
-        for (const parent of st) same_set(memo, parent.a, parent.b, false);
-        return false;
       }
       if (memo.left === 0) return false;
       memo.left--;
       if (a.$ !== b.$) {
-        for (const parent of st) same_set(memo, parent.a, parent.b, false);
         return false;
       }
       switch (a.$) {
         case "Var":
           if (a.i < 0 || a.i !== (b as typeof a).i) {
-            for (const parent of st) same_set(memo, parent.a, parent.b, false);
             return false;
           }
-          same_set(memo, a, b, true);
           st.pop();
           continue;
         case "Ref":
           if (a.k !== (b as typeof a).k) {
-            for (const parent of st) same_set(memo, parent.a, parent.b, false);
             return false;
           }
-          same_set(memo, a, b, true);
           st.pop();
           continue;
         case "Lit":
           if (a.k !== (b as typeof a).k || a.v !== (b as typeof a).v) {
-            for (const parent of st) same_set(memo, parent.a, parent.b, false);
             return false;
           }
-          same_set(memo, a, b, true);
           st.pop();
           continue;
         case "App": {
@@ -3143,25 +3131,22 @@ function term_same(lhs: HTerm, rhs: HTerm, memo: SameMemo): boolean {
           const x = b as typeof a;
           if (a.k !== x.k || a.x.length !== x.x.length
               || (a.$ === "ADT" && a.r.join() !== (x as typeof a).r.join())) {
-            for (const parent of st) same_set(memo, parent.a, parent.b, false);
             return false;
           }
           frame.kids = a.x.map((field, i) => [field, x.x[i]]);
           break;
         }
         case "Rfl": case "Efq":
-          same_set(memo, a, b, true);
           st.pop();
           continue;
         default:
-          for (const parent of st) same_set(memo, parent.a, parent.b, false);
           return false;
       }
     } else if (frame.next < frame.kids.length) {
       const [x, y] = frame.kids[frame.next++];
       st.push({ a: x, b: y, next: 0 });
     } else {
-      same_set(memo, a, b, true);
+      if (same_cacheable(a, b)) same_set(memo, a, b);
       st.pop();
     }
   }
