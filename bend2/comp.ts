@@ -192,7 +192,7 @@ const OPERATIONS: Record<string, Intr> = Object.setPrototypeOf({
     JS: "Math.fround($0)",
   },
   u32_to_nat: {
-    C:  "$0",
+    C:  "((u64)$0)",
     JS: "$0",
   },
   u32_from_nat: {
