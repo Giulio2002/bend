@@ -10,6 +10,7 @@ def main():
   b = (![0:1, 131071:2, _:9; 131072] : [:U32])
   0
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a term
 #|- observed : '!'

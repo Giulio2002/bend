@@ -8,6 +8,7 @@ law main:
 def main():
   1 ^ 2
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : 'def', 'type' or 'law'
 #|- observed : '^'

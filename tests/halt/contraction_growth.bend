@@ -46,6 +46,7 @@ law main:
 
 def main(): Z{}
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : p
 #|- observed : p (consumed more than once)

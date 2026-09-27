@@ -15,6 +15,7 @@ type List<a, -A: Kind(a)> is Kind(a):
 type T<a, b, -A: Kind(a), -B: Kind(b)> is Kind(a):
   C{x: B}
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : Kind(a)
 #|- observed : Kind(b)

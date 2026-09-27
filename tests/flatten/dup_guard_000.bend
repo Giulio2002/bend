@@ -17,6 +17,7 @@ def main(a):
     case k, x:
       k
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- message  : a match on a parameter or field (this name is a def or a consumed binder: give the value its own def)
 #|Location:

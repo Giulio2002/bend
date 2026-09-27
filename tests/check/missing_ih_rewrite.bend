@@ -28,6 +28,7 @@ def add_zero(a):
     case Sh{p}:
       {==}
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : Sh{add(p, Zh{})}
 #|- observed : Sh{p}

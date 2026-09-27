@@ -42,6 +42,7 @@ law main:
 def main():
   %h@bad : family(_); U6{}
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : b
 #|- observed : a

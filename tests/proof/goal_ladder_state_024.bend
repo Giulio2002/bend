@@ -115,6 +115,7 @@ def ack_gt(m, n):
         case 1n+q:
           le_trans(2n+q, 1n+ack(1n+p, q), ack(p, ack(1n+p, q)), ack_gt(1n+p, q), ack_gt(p, ack(1n+p, q)))
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : LE(1n, ack(p, 1n))
 #|- observed : Type

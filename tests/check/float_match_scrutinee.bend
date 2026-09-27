@@ -19,6 +19,7 @@ law main:
 def main():
   f(1.5)
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a constructor of F32 (missing, or already matched)
 #|- observed : \{Chr: (c => 0)}

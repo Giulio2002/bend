@@ -14,6 +14,7 @@ law later:
 
 def later(): 0
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a filled definition (an unfilled law is a dead claim: live code cannot use it)
 #|- observed : later

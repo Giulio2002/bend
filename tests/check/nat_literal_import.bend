@@ -10,6 +10,7 @@ def main():
   x = 2n
   Type
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a declared constructor
 #|- observed : 2n

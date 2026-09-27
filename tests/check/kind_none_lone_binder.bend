@@ -15,6 +15,7 @@ def g(+x: Z) -> Z:
 def main() -> Nat:
   0n
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : Data
 #|- observed : Kind(&0)
@@ -23,4 +24,5 @@ def main() -> Nat:
 #|12>| def g(+x: Z) -> Z:
 #|   |           ^
 #|13 |   x
+#|Note: +x can be used many times, so its type must be Data.
 #|exit 1

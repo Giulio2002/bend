@@ -7,6 +7,7 @@ def app(~f, x: Nat) -> Nat:
 def main() -> Nat:
   app(~Nat.add(1n), 3n)
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : ':'
 #|- observed : ','

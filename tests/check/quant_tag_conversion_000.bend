@@ -26,6 +26,7 @@ law main:
 
 def main(): dupl(1n)
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : @-x:Nat -> Nat
 #|- observed : @x:Nat -> Nat

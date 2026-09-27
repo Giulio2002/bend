@@ -8,6 +8,7 @@ def main() -> U32:
   match Kk{1, 2}:
     case Kk{a, b}: a
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a fresh field name (duplicate declaration: x)
 #|- observed : 'x'

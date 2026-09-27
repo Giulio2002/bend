@@ -15,6 +15,7 @@ type List<a, -A: Kind(a)> is Kind(a):
 type Box is Data:
   MkBox{f: Nat -> Nat}
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : Data
 #|- observed : Type

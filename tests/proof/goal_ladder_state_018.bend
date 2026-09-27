@@ -60,6 +60,7 @@ def len_app(xs, ys):
       %len_app(t, ys) : {S{len(app(t, ys))} == S{_} : N}
       Type
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : {S{len(app(t, ys))} == S{len(app(t, ys))} : N}
 #|- observed : Type

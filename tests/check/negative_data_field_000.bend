@@ -20,6 +20,7 @@ law main:
 
 def main(): Type
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : f
 #|- observed : f (consumed more than once)

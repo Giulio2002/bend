@@ -12,7 +12,7 @@ static Term tcp_poll_end(Env e, IoWork* w, Term r) {
 
 static Term tcp_poll_more(Env e, IoWork* w) {
   int fd  = (int)w->hand;
-  u64 at  = io_wait_time(w);
+  u64 at  = w->time;
   w->size = io_sys_end(w, recv(fd, w->data, (size_t)w->made, 0));
   if (w->code == EAGAIN) {
     return io_tick() < at ? io_wait_on(w, fd, POLLIN, at, tcp_poll_more)

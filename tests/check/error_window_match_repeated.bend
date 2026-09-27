@@ -5,6 +5,7 @@ type One is Data:
 def bad() -> One -> One:
   \{One: One{}; One: One{}}
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a constructor of One (missing, or already matched)
 #|- observed : \{One: One{}}

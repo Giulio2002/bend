@@ -7,6 +7,7 @@ import ./alias_lib.bend as Nat
 def main() -> Nat:
   Nat.add(2n, 2n)
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : an unambiguous name (the alias Nat shadows Nat.add)
 #|- observed : '('

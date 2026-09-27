@@ -23,6 +23,7 @@ law main:
 def main():
   tpl(y => (y + magic : U32), 1)
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a filled definition (an unfilled law is a dead claim: live code cannot use it)
 #|- observed : magic

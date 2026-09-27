@@ -9,6 +9,7 @@ law main:
 def main():
   `a
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a term
 #|- observed : '`'

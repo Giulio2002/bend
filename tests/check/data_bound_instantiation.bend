@@ -38,6 +38,7 @@ law main:
 
 def main(): fst2(Bx2, dup2(Bx2)(mk2(Unit{})))
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : Data
 #|- observed : Type

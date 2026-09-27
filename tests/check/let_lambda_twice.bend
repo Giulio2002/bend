@@ -14,6 +14,7 @@ def main():
   k0 = {(x => x) : U32 -> U32}
   P12{k0(1), k0(2)}
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : k0
 #|- observed : k0 (consumed more than once)

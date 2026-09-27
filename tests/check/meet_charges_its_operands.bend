@@ -19,6 +19,7 @@ law dup:
 def dup(q):
   P{q <&> &2, q <&> &2}
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : q
 #|- observed : q (consumed more than once)

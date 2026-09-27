@@ -8,6 +8,7 @@ law main:
 def main():
   Rand.next(Rand.new(42))
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a defined name
 #|- observed : Rand.next

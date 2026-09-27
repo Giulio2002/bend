@@ -5,6 +5,7 @@ import Base
 def main() -> Array<U32>:
   [0 : U32*3n]
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- message  : a power of two count (^d takes a depth)
 #|Location:

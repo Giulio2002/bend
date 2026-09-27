@@ -14,6 +14,7 @@ def extract(s: String) -> Empty:
 def boom() -> Empty:
   extract("x")
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a declared constructor (Empty declares )
 #|- observed : 'x'

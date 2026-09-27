@@ -15,6 +15,7 @@ def g(x: Nat) -> Nat:
 def main() -> Nat:
   g(3n)
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a template applied to closed ~ arguments (x is a variable here, not comptime: pass it at run time)
 #|- observed : app

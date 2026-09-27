@@ -17,6 +17,7 @@ law main:
 def main():
   0n
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : Data
 #|- observed : Type
@@ -27,4 +28,5 @@ def main():
 #|8>|   for +x: T
 #|  |           ^
 #|9 |   T & T
+#|Note: +x can be used many times, so its type must be Data.
 #|exit 1

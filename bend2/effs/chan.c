@@ -13,7 +13,7 @@ typedef struct {
   u32   live;
   u32   shut;
   Term* ring;
-  IoQue wait;
+  IoWork* wait;
 } ChanRow;
 
 // A channel is Data: its handle is copied and may outlive the row, so it
@@ -58,14 +58,13 @@ static ChanRow* chan_at(Term t) {
 // Parks the effect's activation on row with item: a sent value, or
 // TERM_HOLE for a receiver.
 static Term chan_park(ChanRow* row, IoWork* w, Term item) {
-  IoAct* a = (IoAct*)w;
-  a->item  = item;
-  io_push(&row->wait, a);
+  w->item = item;
+  io_push(&row->wait, w);
   return IO_PARK;
 }
 
 static Term chan_wake(ChanRow* row, Term x) {
-  IoAct* a  = io_pop(&row->wait);
+  IoWork* a = io_pop(&row->wait);
   Term item = a->item;
   a->item   = x;
   io_push(&io_runs, a);
@@ -76,7 +75,7 @@ static Term chan_take(ChanRow* row) {
   Term v = row->ring[row->head];
   row->head = (row->head + 1) % row->room;
   row->size -= 1;
-  if (row->wait.head != NULL) {
+  if (row->wait != NULL) {
     Term item = chan_wake(row, chan_bool(true));
     row->ring[(row->head + row->size) % row->room] = item;
     row->size += 1;
@@ -93,8 +92,8 @@ static void chan_free(ChanRow* row) {
 
 static void chan_shut(Env e, ChanRow* row) {
   row->shut = 1;
-  while (row->wait.head != NULL) {
-    bool rcv = row->wait.head->item == TERM_HOLE;
+  while (row->wait != NULL) {
+    bool rcv = row->wait->next->item == TERM_HOLE;
     Term x = rcv ? term_pak(CID(None), 0) : chan_bool(false);
     term_sink(e, chan_wake(row, x));
   }
@@ -123,7 +122,7 @@ Term chan_send_run(Env e, Term* f, IoWork* w) {
     term_drop(e, f[1]);
     return chan_bool(false);
   }
-  if (row->wait.head != NULL && row->wait.head->item == TERM_HOLE) {
+  if (row->wait != NULL && row->wait->next->item == TERM_HOLE) {
     chan_wake(row, chan_some(e, f[1]));
     return chan_bool(true);
   }
@@ -155,7 +154,7 @@ Term chan_recv_run(Env e, Term* f, IoWork* w) {
     }
     return chan_some(e, v);
   }
-  if (row->wait.head != NULL && row->wait.head->item != TERM_HOLE) {
+  if (row->wait != NULL && row->wait->next->item != TERM_HOLE) {
     return chan_some(e, chan_wake(row, chan_bool(true)));
   }
   if (row->shut) {

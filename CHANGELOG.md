@@ -3,6 +3,98 @@
 Each release names what changed for a user. `bend update` installs the
 latest one; the GitHub release carries the same notes.
 
+## 2.0.32 (2026-09-27)
+
+- **One verdict: `ALL PROOFS CHECK` or `SOME PROOFS FAIL`**: `bend f.bend`
+  on a file with no main (or `--check-only`) prints one of the two. A proof
+  holds when bend checks it and it uses no `@unsafe` def and no user foreign
+  code, imports included. `--verdict` (was `--safe`) also rechecks every
+  def with the proven BendTT kernel; it no longer writes `f.bendtt`, and
+  `-o f.bendtt` does. Function-typed terms go to the kernel η-long.
+- **Breaking: `TCP.listen` and `UDP.bind` take the address to bind** (#1088,
+  PR #1098 by oxura): a server no longer listens on every interface.
+- **Breaking: `IO.args()` starts with the program as invoked** (#935), as C's
+  argv does; the arguments start at index 1.
+- **`IO.within` races an action against a deadline** (#1034).
+- **`TCP.send_bytes` and `TCP.recv_bytes`** carry bytes as they are (#846).
+- **`-o f.mjs` writes an ES module** of a Bend file (#1029).
+- **Windows**: `Window.grab` holds the cursor for a first-person camera, and
+  the mouse's motion comes as `Look{dx, dy}` (#921, PR #1073 by
+  nicolas-abril); `Scroll{x, y, dx, dy}` events come from the wheel and the
+  trackpad (#1020, PR #1114 by oxura); macOS input no longer lags (#842);
+  Shift+Tab on X11 gives the Mac's back tab; the Linux window fills a frame
+  by squares, about 6x faster (PR #1115 by costamatheus97).
+- **Fixes**:
+  - A native intrinsic on a nullary def keeps its result layout (#1093,
+    PR #1094 by chiliec).
+  - One file is one module however an import spells its path (#1087,
+    PR #1103 by MattCozendey), and an alias that matches the file name
+    works (#1082).
+  - F32 text rounds once to the nearest f32 on every lane and in literals
+    (#1055); `F32.pow(±1, y)` is 1 on JS as on C (#1060).
+  - A pure main that prints a datatype through a family field builds (#1067).
+  - Two defs with the same body are equal (#1028).
+  - A fallback arm past a datatype's last constructor is dead code (#1091).
+  - An error names a hub def the way you write it (#965), and a `+` binder's
+    error names the right binder (#980).
+  - A compound type argument without parens is a clean parse error (#1110).
+  - A shared Array's redirect reads cannot race its count (#975).
+  - Timers wake in deadline order; clang's version probe no longer fails
+    under load.
+  - `--gpu on` names the reason a CUDA GPU is unusable (#1064).
+  - A JS host tag the type lacks is a clean error (#1105).
+
+## 2.0.31 (2026-09-27)
+
+- **`bend` help: one aligned line per command**: a table builds the list,
+  so every description starts in one column; `--publish [<name>@<version>]`
+  is one line, and `bend guide` is the last command.
+
+## 2.0.30 (2026-09-27)
+
+- **`bend f.bend --safe` rechecks a file with a proven kernel**: after
+  bend's own checker, it translates the file to BendTT (`f.bendtt`) and
+  checks that with `bend2/bendtt.lean`, a small kernel with a Lean proof
+  that no def it accepts has type `Empty` and that live code halts. The
+  first run builds the kernel with Lean v4.34.0 (elan's toolchain, or
+  `$BENDTT` names a built one). `@unsafe` defs stay out of scope, and
+  `--safe` lists them. `-o f.bendtt` only writes the translation.
+- **The kernel has full J**: a rewrite's motive can name the evidence.
+- **base.bend**: the `Array.get`, `Array.swap` and `Map` helpers recurse on
+  their own pieces, so the kernel checks them; a few `.if`/`.bit`/`.deep`
+  helpers and five laws are gone.
+- **The BendTT paper** (`paper/BendTT.pdf`) is rewritten for the new kernel;
+  `bend2/bend.lean` is gone, and `bend2/bendtt.lean` is the only Lean file.
+
+## 2.0.29 (2026-09-26)
+
+- **The JS lane runs about 2.3x faster** (PR #1061 by nicolas-abril, and a
+  Nat that is a JS number): a Nat is a double, exact below the 2^48 - 1 cap
+  the C lane shares, and BigInt only where a value crosses to the host; a
+  tail cycle is a loop, and a def calls another directly unless the callee
+  can bounce. The JS lane recurses at least as deep as before. A Nat that a
+  host passes in (negative, past 2^53 or not an integer) now fails with the
+  C lane's Nat message instead of printing garbage.
+- **Errors underline their span** (PR #1063 by nicolas-abril): a location
+  marks the exact text, and a non-inferrable term is no longer echoed.
+- **A checked recursion on a Nat literal is linear** (#983): the descent
+  check no longer takes 2^n steps on a literal like `30n`.
+- **A constructor of any width builds on C** (#991, PR #1068 by
+  nicolas-abril).
+- **Compiled binaries pass `--help` to `IO.args`** (#934, PR #988 by
+  YidaWeng); the runtime's own help is `--bend-help`.
+- **Fixes**: a boxed Bool from a generic pick reaches `Bool.or` as a flat tag
+  on C (#1026, PR #1038 by vicmcorrea); `Process.run` stops at the child's
+  exit even when a descendant holds its pipes (#1051, PR #1054 by
+  Yi-111-a); `TCP.listen`'s backlog is 512, so a burst of 10k connections is
+  answered in full (PR #977 by aldeni).
+- **Simpler compiler and checker, same output**: the compiler's types go
+  from 31 to 16 and the C runtime's type names from 26 to 14, with one
+  atomic family for the host, Metal and CUDA; the parser reads operators
+  from one table (parsing 7-22% faster, checking 2-6% faster). A file that
+  ends in `<` now says "expected a term". Tested on macOS (Metal), Linux
+  x86-64, and CUDA from Pascal to Blackwell.
+
 ## 2.0.28 (2026-09-25)
 
 - **The macOS `bend` has a valid signature** (#1025): `bun build --compile`

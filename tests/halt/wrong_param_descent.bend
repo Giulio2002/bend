@@ -26,6 +26,7 @@ law main:
 
 def main(): f(0n, 0n)
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a decreasing self-call (arguments are read left to right: each passed unchanged until one shrinks)
 #|- observed : f

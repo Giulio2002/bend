@@ -70,6 +70,7 @@ def main():
   c = chk_bad(HTTP.read_url("ftp://x/"))
   (a * 100 + b * 10 + c : U32)
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a defined name
 #|- observed : HTTP.read_url

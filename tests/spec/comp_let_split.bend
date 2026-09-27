@@ -58,6 +58,7 @@ law main:
 def main():
   total(keep(U32, x => b2(x), C{1, C{2, C{3, N{}}}}))
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a plain clause (only leading clauses take ~)
 #|- observed : '~'

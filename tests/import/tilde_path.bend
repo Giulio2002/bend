@@ -8,6 +8,7 @@ import ./law.k~B.bend as E
 def main() -> U32:
   0
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : an import path of plain names (letters, digits, _ and -; the hub's files import the hub's)
 #|- observed : './law.k~B.bend'

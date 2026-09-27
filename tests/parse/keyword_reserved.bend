@@ -6,6 +6,7 @@
 law law : Type
 def law(): Type
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a name (got the keyword 'law')
 #|- observed : 'law'

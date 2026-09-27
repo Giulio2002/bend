@@ -7,6 +7,7 @@ def bad(x: One) -> Type:
     case One.new{}:
       x
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : Type
 #|- observed : One

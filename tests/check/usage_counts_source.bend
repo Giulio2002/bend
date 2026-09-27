@@ -21,6 +21,7 @@ def Ty(x):
 law duplicate: Res -> Box
 def duplicate(t): (z => {z : Ty(z)})(Box{consume(t), t})
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : t
 #|- observed : t (consumed more than once)

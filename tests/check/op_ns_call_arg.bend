@@ -8,6 +8,7 @@ def id_u(x: U32) -> U32: x
 def main() -> U32:
   (id_u(2 + 3) : U32)
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- message  : a type for this operator (write (a + b : Nat))
 #|Location:

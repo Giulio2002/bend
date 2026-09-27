@@ -36,6 +36,7 @@ law main:
 def main():
   award(3n, 3n)
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : 3 patterns (one per scrutinee)
 #|- observed : 'True{}'

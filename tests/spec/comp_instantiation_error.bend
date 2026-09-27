@@ -36,6 +36,7 @@ law main:
 def main():
   caller(C{1, N{}})
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a plain clause (only leading clauses take ~)
 #|- observed : '~'

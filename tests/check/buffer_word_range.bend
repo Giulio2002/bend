@@ -12,6 +12,7 @@ def main():
   x = (![4294967295:7,_:0;4294967296] : [:U32])@buf[4294967295]
   x
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a term
 #|- observed : '!'

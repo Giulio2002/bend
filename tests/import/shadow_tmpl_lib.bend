@@ -11,4 +11,5 @@ def pick(a: Nat, b: Nat) -> Nat:
 def G(~n: Nat, x: Nat) -> Nat:
   pick(n, x)
 
-#|All terms check.
+#|ALL PROOFS CHECK
+#|Use --verdict for mathematical validity.

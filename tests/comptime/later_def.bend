@@ -12,6 +12,7 @@ def main() -> Nat:
 def later(n: Nat) -> Nat:
   Nat.mul(n, 10n)
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a filled definition (an unfilled law is a dead claim: live code cannot use it)
 #|- observed : later

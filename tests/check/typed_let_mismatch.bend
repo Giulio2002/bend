@@ -4,6 +4,7 @@ import Base
 def main() -> U32:
   z : Nat = 30
   0
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : Nat
 #|- observed : U32

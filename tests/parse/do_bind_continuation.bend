@@ -10,11 +10,12 @@ def f():
   do Result<&2, &2, Unit, U32>:
     x <- Result.pure(&2, &2, Unit, U32, 1)
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a term
 #|- observed : end of input
 #|Location:
-#|20 | #|exit 1
-#|21>|
+#|21 | #|exit 1
+#|22>|
 #|   | ^
 #|exit 1

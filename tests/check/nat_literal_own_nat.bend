@@ -6,6 +6,7 @@ type Nat is Data:
 def n() -> Nat:
   3n
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a declared constructor (Nat declares Foo)
 #|- observed : 3n

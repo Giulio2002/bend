@@ -27,6 +27,7 @@ law main:
 
 def main(): f(Zw3{})
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- message  : an undestructed scrutinee (this value is already a constructor: bind its fields directly; if an outer match destructed it, fold the pattern into the outer case)
 #|Location:

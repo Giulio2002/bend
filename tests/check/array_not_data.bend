@@ -22,6 +22,7 @@ def main():
   arr = (![0:5, _:0; 1] : [:U32])
   f(arr, arr)
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a term
 #|- observed : ':'

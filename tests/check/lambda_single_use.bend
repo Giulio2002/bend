@@ -15,6 +15,7 @@ def main():
   k = k0(Unit{})
   P12{k, k}
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : k
 #|- observed : k (consumed more than once)

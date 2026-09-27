@@ -14,6 +14,7 @@ law main:
 def main():
   {1.5 == 2.5 : F32}
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : 1.5
 #|- observed : 2.5

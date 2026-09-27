@@ -114,7 +114,7 @@ export async function node_lock(): Promise<number[]> {
 }
 
 // Packs what a node needs to build the programs under dir, as one tar.gz:
-// the compiler, Base and the effect kit (not bend.lean, docs or pack)
+// the compiler, Base and the effect kit (not docs or pack)
 // beside dir, under its own name. A gate packs once and sends the same
 // bytes to every node: packing takes 0.35 s of the main thread, so a pack
 // per shard held the last of 48 launches back by 17 s.

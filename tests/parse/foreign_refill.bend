@@ -18,6 +18,7 @@ def f():
 def main() -> IO(Unit):
   f()
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a fresh name (duplicate declaration: f)
 #|- observed : 'f'

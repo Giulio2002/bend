@@ -1,5 +1,5 @@
 # Smoke test for #970: a List built at runtime (the sum comes from the
-# length of IO.args) keeps the val_box-over-sum shape in the emitted C,
+# argument count, IO.args past the program) keeps the val_box-over-sum shape in the emitted C,
 # the one place main's two lines differ from this branch's: main splices
 # the parked Cons cell into the Pair node (_nd_2 = _sp_0) and heap_allocs
 # the rebuild, so the Scalar path orphans it, while here the Pair is
@@ -51,7 +51,7 @@ def head_nat(values: List<&2, Value>) -> Nat:
 def main() -> IO(Unit):
   do IO<Unit>:
     xs : List<String> <- IO.args()
-    +n : Nat = List.length(&1, String, xs)
+    +n : Nat = Nat.sub(List.length(&1, String, xs), 1n)
     Unit <- IO.print(U32.show(head_u32(rebox(wrap(n) <> Nil{}))))
     IO.print(Nat.show(head_nat(rebox(wrap(Nat.add(n, 4n)) <> Nil{}))))
 

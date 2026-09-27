@@ -25,6 +25,7 @@ law main:
 
 def main(): wob(MkP{2n, 0n})
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a decreasing self-call (arguments are read left to right: each passed unchanged until one shrinks)
 #|- observed : wob

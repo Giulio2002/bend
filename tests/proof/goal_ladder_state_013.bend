@@ -56,6 +56,7 @@ def add_comm(a, b):
     case S{p}:
       Type
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : {S{add(p, b)} == add(b, S{p}) : N}
 #|- observed : Type

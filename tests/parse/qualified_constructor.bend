@@ -9,6 +9,7 @@ law main:
 def main():
   Nat.Succ{Zero{}}
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a declared constructor (Nat declares Zero, Succ)
 #|- observed : Nat.Succ{0n}

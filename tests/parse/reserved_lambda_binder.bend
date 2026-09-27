@@ -5,6 +5,7 @@ law main:
 
 def main(): Type => Type
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a lambda binder (one name: k => body)
 #|- observed : ' '

@@ -19,6 +19,7 @@ law main:
 
 def main(): f(Zw4{})
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a defined name
 #|- observed : Aw4

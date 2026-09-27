@@ -9,6 +9,7 @@ law main:
 def main():
   nan
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a defined name
 #|- observed : nan

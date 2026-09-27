@@ -41,6 +41,7 @@ law rot_x:
 def rot_x(p):
   {==}
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : getx(rot(p))
 #|- observed : gety(p)

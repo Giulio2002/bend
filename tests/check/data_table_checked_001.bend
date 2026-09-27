@@ -42,6 +42,7 @@ law main:
 
 def main(): delta(MkBox6{argument => delta(MkBox6{argument})})
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : box
 #|- observed : box (consumed more than once)

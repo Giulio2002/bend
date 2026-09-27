@@ -58,6 +58,7 @@ def add_comm(a, b):
       %add_succ(b, p) : {S{add(p, b)} == _ : N}
       {==}
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : S{add(p, b)}
 #|- observed : S{add(b, p)}

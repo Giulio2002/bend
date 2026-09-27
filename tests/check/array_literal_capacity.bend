@@ -20,6 +20,7 @@ law main:
 def main():
   go(7)
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a term
 #|- observed : '!'

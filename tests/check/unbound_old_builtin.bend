@@ -8,6 +8,7 @@ law main:
 def main():
   u2f(1)
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a defined name
 #|- observed : u2f

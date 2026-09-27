@@ -22,6 +22,7 @@ law vpad:
 def vpad(n, v):
   v
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : Vec(Nat.add(n, 0n))
 #|- observed : Vec(n)

@@ -9,6 +9,7 @@ law main:
 def main():
   -5
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a name
 #|- observed : '5'

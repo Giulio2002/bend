@@ -19,6 +19,7 @@ law main:
 
 def main(): f(Aa1{})
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : cases for Bb1, Cc1
 #|- observed : \{}

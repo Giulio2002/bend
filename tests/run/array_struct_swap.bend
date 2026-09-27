@@ -16,6 +16,7 @@ def main():
   a = m[0] <- Mk9{5}
   0
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : a term
 #|- observed : ':'

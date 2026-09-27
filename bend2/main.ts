@@ -22,6 +22,7 @@ import type { BunPlugin } from "bun";
 
 import * as Bend from "./bend.ts";
 import * as Comp from "./comp.ts";
+import * as Safe from "./safe.ts";
 
 // Main
 // ====
@@ -29,25 +30,30 @@ import * as Comp from "./comp.ts";
 // Constants
 // =========
 
-const VERSION = "2.0.28";
+const VERSION = "2.0.32";
+
+// the commands, one row each: [usage, what it does]; bend guide stays last
+const USAGE = [
+  ["bend <file.bend> [args]", "check the file, then run main with args"],
+  ["bend <file.bend> -o <out>", "build a binary, or C, JS, .mjs or BendTT by extension"],
+  ["bend <file.bend> --check-only", "check the file and its imports; run nothing"],
+  ["bend <file.bend> --verdict", "check it, then recheck it with the proven kernel"],
+  ["bend <file.bend> --publish [<name>@<version>]", "publish the file and its imports; a name needs login"],
+  ["bend link <name>@<version> 0x<hash>", "name a package already on the hub"],
+  ["bend login", "log in to Bender for --publish <name>@…"],
+  ["bend <page.html> -o <dir>", "bundle a page that imports .bend files"],
+  ["bend base [--types|<name>]", "print Base, its types, or a name and subnames"],
+  ["bend update", "install the latest bend (curl | sh, shown first)"],
+  ["bend version", "print the version"],
+  ["bend guide", "print the Bend guide"],
+];
+
+const USE_W = Math.max(...USAGE.map(([use]) => use.length));
 
 const HELP = `Bend ${VERSION}: check, run, build and publish Bend programs.
 
 usage:
-  bend <file.bend> [args]       check the file, then run main with args
-  bend <file.bend> -o <out>     build a binary; <out>.c emits C, <out>.js JS
-  bend <file.bend> --check-only check the file and its imports; run nothing
-  bend <file.bend> --publish    publish the file and its imports to the hub
-  bend <file.bend> --publish <name>@<version>
-                                publish, then name it (needs login)
-  bend link <name>@<version> 0x<hash>
-                                name a package already on the hub
-  bend login                    log in to Bender for --publish <name>@…
-  bend <page.html> -o <dir>     bundle a page that imports .bend files
-  bend base [--types|<name>]    print Base, its types, or a name and subnames
-  bend guide                    print the Bend guide
-  bend update                   install the latest bend (curl | sh, shown first)
-  bend version                  print the version
+${USAGE.map(([use, say]) => `  ${use.padEnd(USE_W)}  ${say}`).join("\n")}
 
 Read the guide (\`bend guide\`) before writing Bend code.
 `;
@@ -66,6 +72,19 @@ const CHECK = path.join(os.homedir(), ".bend", "check.json");
 
 const DAY = 86400000;
 
+// the verdict on a book: PASS when every def outside Base is a valid proof
+// (see cli_verdict), else FAIL and why
+const PASS = "ALL PROOFS CHECK";
+
+const FAIL = "SOME PROOFS FAIL";
+
+const HINT = "Use --verdict for mathematical validity.";
+
+const MISMATCH = "Sorry - this is a mismatch between the TypeScript implementation,"
+  + " and the formalized BendTT kernel. Your proofs may or may not be correct, and"
+  + " we cannot validate them yet. This will be addressed in a future update."
+  + " Meanwhile, feel free to open an issue to report this bug.";
+
 // BendHub's terms; s18.4 makes MIT-0 the default license
 const TERMS = "https://bend-lang.com/bender/terms#s18";
 
@@ -74,10 +93,9 @@ const SPDX_RE = /^\s*SPDX-License-Identifier:\s*([A-Za-z0-9.+\-() ]{1,80}?)\s*$/
 
 // A package's proof of work is a nonce whose sha256(hash + " " + nonce)
 // opens (its top 53 bits) with a number under 2^53 / work, where work is
-// POW hashes (two seconds of an M4 Max's sixteen cores) per 256 KiB of
-// package, and no less. Every core mines; the hub checks it with one hash.
-const POW = 140000000;
-
+// the hub's pow hashes (GET /pow.json; two seconds of an M4 Max's sixteen
+// cores) per 256 KiB of package, and no less. Every core mines; the hub
+// checks it with one hash.
 const POW_JS = `
 const crypto = require("node:crypto");
 const { parentPort, workerData: { pre, lim, from, step } }
@@ -213,6 +231,7 @@ async function cli_file(args: string[]): Promise<void> {
   const argv: string[] = [];
   let file: string | undefined;
   let only = false;
+  let verdict = false;
   let checkup = false;
   let publish = false;
   let named: string | undefined;
@@ -222,6 +241,8 @@ async function cli_file(args: string[]): Promise<void> {
       return cli_say(1, HELP);
     } else if (a === "--check-only") {
       only = true;
+    } else if (a === "--verdict") {
+      verdict = true;
     } else if (a === "--checkup") {
       checkup = true;
     } else if (a === "--publish") {
@@ -257,8 +278,8 @@ async function cli_file(args: string[]): Promise<void> {
   if (publish && (outs.length !== 0 || only || checkup)) {
     cli_fail("--publish takes no other option");
   }
-  if (only && (outs.length !== 0 || checkup)) {
-    cli_fail("--check-only takes no other option");
+  if ((only || verdict) && (outs.length !== 0 || checkup || (only && verdict))) {
+    cli_fail((verdict ? "--verdict" : "--check-only") + " takes no other option");
   }
   if (argv.length !== 0 && (outs.length !== 0 || only || checkup || publish)) {
     cli_fail("arguments go to a run: bend <file.bend> [args]");
@@ -274,16 +295,14 @@ async function cli_file(args: string[]): Promise<void> {
     if (checkup) {
       return await cli_checkup(file);
     }
-    if (only) {
-      return cli_report(...await book_read(file), 1);
-    }
     const seen = new Map<string, string | null>();
-    const [book, n0] = await book_read(file, undefined, seen);
-    if (outs.length !== 0 || book_main(book) !== null) {
-      cli_report(book, n0, 2);
+    const book = await book_read(file, undefined, seen);
+    if (only || verdict) {
+      process.exitCode = cli_verdict(book, verdict);
+      return;
     }
     if (outs.length === 0) {
-      process.exitCode = book_run(book, n0, argv);
+      process.exitCode = book_run(book, [file, ...argv]);
       return;
     }
     const ins = new Set([...seen.keys(), ...Object.values(book.tlds).flatMap((t) =>
@@ -304,7 +323,7 @@ async function cli_file(args: string[]): Promise<void> {
 // cli_checkup checks and runs each import of the file alone (Base read
 // once, seeded into every module that imports it); one that fails fails it.
 async function cli_checkup(file: string): Promise<void> {
-  const [base] = await book_read(BASE);
+  const base = await book_read(BASE);
   let bad = false;
   for (const raw of fs.readFileSync(file, "utf8").split("\n")) {
     const m = /^import\s+(\S+)\s+as\s+[A-Za-z_][A-Za-z0-9_]*\s*$/
@@ -318,7 +337,7 @@ async function cli_checkup(file: string): Promise<void> {
     let code = 1;
     try {
       const own = /^import Base$/m.test(fs.readFileSync(at, "utf8"));
-      code = book_run(...await book_read(at, own ? base : undefined), []);
+      code = book_run(await book_read(at, own ? base : undefined), [at]);
     } catch (e) {
       cli_say(2, book_err(e) + "\n");
     }
@@ -337,10 +356,17 @@ function path_real(p: string): string {
 }
 
 function cli_emit(book: Bend.Book, out: string): void {
-  if (/\.c?js$/.test(out)) {
+  if (out.endsWith(".mjs")) {
+    fs.writeFileSync(out, Comp.js_lib(book, true));
+  } else if (/\.c?js$/.test(out)) {
     fs.writeFileSync(out, Comp.js_book(book));
   } else if (out.endsWith(".c")) {
     fs.writeFileSync(out, Comp.compile_book(book));
+  } else if (out.endsWith(".bendtt")) {
+    const oos = Safe.safe_emit(book, out);
+    if (oos.length !== 0) {
+      cli_say(2, "BendTT: out of scope, so not in " + out + ":\n" + oos.join(""));
+    }
   } else {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "bend-"));
     const c   = path.join(dir, path.basename(out) + ".c");
@@ -371,14 +397,14 @@ function cc_find(gpu: boolean): string {
   const olds: string[] = [];
   const ccs  = [...(process.env.CC ? [process.env.CC] : []), "clang", ...nums];
   for (const cc of ccs) {
-    const out = child.spawnSync(cc, ["--version"], { encoding: "utf8" }).stdout ?? "";
+    const [got, out] = Safe.run_read(cc, ["--version"]);
     const m   = /^(Apple )?(?:\w+ )?clang version (\d+)/m.exec(out);
     const need = gpu ? (m?.[1] === undefined ? 19 : 17) : 14;
     if (m !== null && Number(m[2]) >= need) {
       return cc;
     }
     olds.push(m !== null ? "clang " + m[2] + " as " + cc
-      : out ? cc + ", which is not clang" : "no " + cc);
+      : got.status === 0 && out ? cc + ", which is not clang" : "no " + cc);
   }
   throw "Error: bend needs clang " + (gpu ? "19 (Apple clang 17)" : "14")
     + " or newer to build " + (gpu ? "a GPU program" : "binaries") + " (found "
@@ -468,8 +494,7 @@ async function cli_bundle(page: string, dir: string): Promise<void> {
 // First it prints the terms and the license the hub will show.
 async function cli_publish(file: string, named?: string): Promise<void> {
   const seen = new Map<string, string | null>();
-  const [book, n0] = await book_read(file, undefined, seen);
-  cli_report(book, n0, 2);
+  const book = await book_read(file, undefined, seen);
   const files = pkg_files(file, book, seen);
   const entry = Object.keys(files)[0];
   const name  = path.basename(entry, ".bend");
@@ -665,8 +690,9 @@ function sha256(text: string): string {
 }
 
 async function pow_mine(hash: string, bytes: number): Promise<number> {
+  const pow  = Number((await hub_ask("/pow.json", "")).pow);
   const step = os.availableParallelism();
-  const lim  = 2 ** 53 / (POW * Math.max(1, bytes / 262144));
+  const lim  = 2 ** 53 / (pow * Math.max(1, bytes / 262144));
   const ws   = Array.from({ length: step }, (_, k) => new thr.Worker(POW_JS,
     { eval: true, workerData: { pre: hash + " ", lim, from: k, step } }));
   const n = await new Promise<number>((res) =>
@@ -675,23 +701,37 @@ async function pow_mine(hash: string, bytes: number): Promise<number> {
   return n;
 }
 
-// Report
-// ======
+// Verdict
+// =======
 
-// cli_report prints the verdict of a check on stdout, or a note before a
-// run, an emit or a publish on stderr (silent then when nothing relies on
-// a promise): the claims (the file's own, book.order from n0, and every
-// law outside Base, filled in any file: an open one fails wherever it is)
-// that are @unsafe or foreign, or whose type, body or constructor fields
-// name a def that relies on one. A law is ordered twice (declared, then
-// filled). A foreign def is a promise like @unsafe is: the checker reads
-// its type, never its code. If the book holds one, a walk from the claims
-// collects who names whom, then the promises flood back along those edges.
-function cli_report(book: Bend.Book, n0: number, fd: number): void {
-  const met  = new Set<string>();
-  const laws = book.order.filter((k) =>
-    met.has(k) ? book.tlds[k].b !== true : !met.add(k));
-  const own  = [...new Set([...book.order.slice(n0), ...laws])];
+// cli_verdict prints the verdict on a book bend2 checked: PASS when no
+// def outside Base relies on unsafe or foreign code and, with the kernel,
+// when BendTT checks every def too; else FAIL and why. A kernel failure is
+// a mismatch: bend2 accepted what the kernel rejects.
+function cli_verdict(book: Bend.Book, kernel: boolean): number {
+  const bad = book_promises(book);
+  if (bad.length !== 0) {
+    cli_say(2, FAIL + "\nError: " + String(bad.length) + " def" + (bad.length === 1
+      ? " relies" : "s rely") + " on unsafe or foreign code:\n"
+      + bad.map((k) => "- " + k + "\n").join(""));
+    return 1;
+  }
+  if (kernel && !Safe.safe_check(book)) {
+    cli_say(2, FAIL + "\n" + MISMATCH + "\n");
+    return 1;
+  }
+  cli_say(1, PASS + "\n" + (kernel ? "" : HINT + "\n"));
+  return 0;
+}
+
+// book_promises lists the defs outside Base (laws and types too) that are
+// @unsafe or foreign, or whose type, body or constructor fields name a def
+// that relies on one: a foreign def is a promise like @unsafe is, as the
+// checker reads its type, never its code. If the book holds a promise, a
+// walk from the defs outside Base collects who names whom, then the
+// promises flood back along those edges.
+function book_promises(book: Bend.Book): string[] {
+  const own  = [...new Set(book.order)].filter((k) => book.tlds[k].b !== true);
   const bad  = new Set(Object.keys(book.tlds).filter((k) => {
     const t = book.tlds[k] as Bend.Def;
     return t.u === true || (t.i !== undefined && t.b !== true);
@@ -717,14 +757,7 @@ function cli_report(book: Bend.Book, n0: number, fd: number): void {
   for (const k of bad) {
     uses[k]?.forEach((j) => bad.add(j));
   }
-  const list = own.filter((k) => bad.has(k));
-  if (list.length > 0) {
-    cli_say(fd, `All terms check, but ${list.length} def${list.length === 1
-      ? " relies" : "s rely"} on unsafe or foreign code:\n`
-      + list.map((k) => "- " + k + "\n").join(""));
-  } else if (fd === 1) {
-    cli_say(1, "All terms check.\n");
-  }
+  return own.filter((k) => bad.has(k));
 }
 
 // term_refs adds to out the names a term (a span skipped) refers to.
@@ -762,24 +795,32 @@ function cli_fail(msg: string): never {
 // ====
 
 async function book_read(file: string, base?: Bend.Book,
-  seen = new Map<string, string | null>()): Promise<[Bend.Book, number]> {
+  seen = new Map<string, string | null>()): Promise<Bend.Book> {
   const book = base === undefined ? Bend.book_nil() : book_seed(base);
   if (base !== undefined) {
     seen.set(BASE, "");
   }
-  const n0 = await Bend.book_load(book, file, "", seen);
-  const laws = path.join(path.dirname(file), "LAWS.bend");
-  if (path.basename(file) === "PROOF.bend" && fs.existsSync(laws)
-    && !seen.has(fs.realpathSync(laws))) {
-    cli_fail("PROOF.bend must import ./LAWS.bend");
+  try {
+    await Bend.book_load(book, file, "", seen);
+    const laws = path.join(path.dirname(file), "LAWS.bend");
+    if (path.basename(file) === "PROOF.bend" && fs.existsSync(laws)
+      && !seen.has(fs.realpathSync(laws))) {
+      throw "Error: PROOF.bend must import ./LAWS.bend";
+    }
+    Bend.book_valid(book, base?.order.length ?? 0);
+    if (book.hols > 0) {
+      throw "Error: " + String(book.hols) + " TODO" + (book.hols === 1 ? "" : "s")
+        + " found.\nThe code is incomplete, and not a valid proof yet.";
+    }
+  } catch (e) {
+    throw new Check_Fail(e);
   }
-  Bend.book_valid(book, base?.order.length ?? 0);
-  const hols = book.hols + book.open;
-  if (hols > 0) {
-    throw "Error: " + String(hols) + " TODO" + (hols === 1 ? "" : "s")
-      + " found.\nThe code is incomplete, and not a valid proof yet.";
-  }
-  return [book, n0];
+  return book;
+}
+
+// a failed check: bend2's reason, which book_err prints under FAIL
+class Check_Fail {
+  constructor(readonly why: unknown) {}
 }
 
 function book_seed(base: Bend.Book): Bend.Book {
@@ -801,11 +842,10 @@ function book_main(book: Bend.Book): Bend.Def | null {
     || (main.v === null && main.i === undefined) ? null : main;
 }
 
-function book_run(book: Bend.Book, n0: number, argv: string[]): number {
+function book_run(book: Bend.Book, argv: string[]): number {
   const main = book_main(book);
   if (main === null) {
-    cli_report(book, n0, 1);
-    return 0;
+    return cli_verdict(book, false);
   }
   if (Comp.io_type(book) !== null) {
     return Comp.io_run(book, argv);
@@ -816,6 +856,9 @@ function book_run(book: Bend.Book, n0: number, argv: string[]): number {
 }
 
 function book_err(e: unknown): string {
+  if (e instanceof Check_Fail) {
+    return FAIL + "\n" + book_err(e.why);
+  }
   const err = e as Bend.Err;
   if (e instanceof RangeError) {
     return "Error: the machine stack overflowed (a deep recursion, or a"
@@ -829,15 +872,7 @@ function book_err(e: unknown): string {
 
 async function load_js(path: string): Promise<string> {
   try {
-    const [book, n0] = await book_read(path);
-    cli_report(book, n0, 2);
-    const outs = [...new Set(book.order)].filter((k) => {
-      const tld = book.tlds[k];
-      return tld.$ === "Def" && tld.v !== null && tld.b !== true
-        && tld.x === 0 && tld.i === undefined
-        && Comp.io_base(book, tld.T) === null;
-    });
-    return Comp.js_lib(book, outs, outs);
+    return Comp.js_lib(await book_read(path), true);
   } catch (e) {
     throw new Error(book_err(e));
   }

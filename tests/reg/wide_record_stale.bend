@@ -36,7 +36,7 @@ def main() -> IO(Unit):
   do IO<Unit>:
     args : List<String> <- IO.args()
     +x : U32 = U32.from_nat(List.length(&1, String, args))
-    +s : String = U32.show((x + 7 : U32))
+    +s : String = U32.show((x + 6 : U32))
     +h : String = heads([mks(s), mks(s), mks(s), mks(s), mks(s), mks(s)])
     +d : String = drop([mka(x), mka(x), mka(x), mka(x), mka(x), mka(x)], h)
     IO.print(d ++ "/" ++ s ++ "/" ++ heads([mks(s), mks(s)]))

@@ -9,6 +9,7 @@ law main:
 def main():
   [1, 2]
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : Array<U32>
 #|- observed : List

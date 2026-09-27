@@ -47,6 +47,7 @@ def half_exists(x, e):
     case S{S{p}}:
       Type
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : Sigma<&1, &1, N, y => {double(y) == S{S{p}} : N}>
 #|- observed : Type

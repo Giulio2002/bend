@@ -22,6 +22,7 @@ law main:
 
 def main(): f(Se2{Ze2{}})
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : cases for Ze2
 #|- observed : \{}

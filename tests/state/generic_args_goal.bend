@@ -20,6 +20,7 @@ law swap_swap:
 def swap_swap(p):
   {==}
 
+#|SOME PROOFS FAIL
 #|Error:
 #|- expected : swap(Nat, Nat, swap(Nat, Nat, p))
 #|- observed : p
