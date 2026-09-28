@@ -2889,9 +2889,9 @@ export function term_wnf(book: Book, term: HTerm): HTerm {
           break focus;
         }
         const op = NAT_OPS[tm.k];
-        const xs = frs.slice(frs.length - tld.n).reverse()
+        const xs = op && frs.slice(frs.length - tld.n).reverse()
           .map((fr) => term_strip((fr as Extract<Frame, { $: "APP" }>).x));
-        if (op !== undefined && xs.every((x) => x.$ === "Lit")) {
+        if (xs && xs.every((x) => x.$ === "Lit")) {
           const r = op(...xs.map((x) => (x as Extract<HTerm, { $: "Lit" }>).v as number));
           if (r.$ !== "Lit" || (r.v as number) <= 0xffffffff) {
             frs.length -= tld.n;
@@ -3072,9 +3072,7 @@ export function term_snf(book: Book, term: HTerm): HTerm {
 // the same way (one walk, stopping at the first difference); past 256
 // steps it records the pairs it settles where a side is a share cell, the
 // only node met twice, so a shared graph is compared once, not as a tree
-let cmp_depth = 0;
-let cmp_steps = 0;
-let cmp_seen: Map<HTerm, Map<HTerm, Map<string, boolean>>> = new Map();
+type CmpCx = { steps: number, seen: Map<HTerm, Map<HTerm, Map<string, boolean>>> | null };
 
 function term_same(x: HTerm, y: HTerm): boolean {
   x = term_strip(x);
@@ -3103,37 +3101,32 @@ function term_same(x: HTerm, y: HTerm): boolean {
 }
 
 export function term_compare(mode: "EQ" | "LE", book: Book, lhs: HTerm, rhs: HTerm, dep: number = 0): boolean {
+  if (lhs === rhs || (term_strip(lhs).$ === "App" && term_same(lhs, rhs))) {
+    return true;
+  }
+  return cmp_go({ steps: 0, seen: null }, mode, book, lhs, rhs, dep);
+}
+
+function cmp(cx: CmpCx, mode: "EQ" | "LE", book: Book, lhs: HTerm, rhs: HTerm, dep: number): boolean {
   if (lhs === rhs) {
     return true;
   }
-  if (cmp_depth === 0) {
-    if (term_strip(lhs).$ === "App" && term_same(lhs, rhs)) {
-      return true;
-    }
-    cmp_steps = 0;
-    cmp_seen = new Map();
-    cmp_depth = 1;
-    try {
-      return cmp_go(mode, book, lhs, rhs, dep);
-    } finally {
-      cmp_depth = 0;
-    }
+  cx.steps += 1;
+  if (cx.steps <= 256 || !((lhs.$ === "Var" && lhs.v !== undefined) || (rhs.$ === "Var" && rhs.v !== undefined))) {
+    return cmp_go(cx, mode, book, lhs, rhs, dep);
   }
-  cmp_steps += 1;
-  if (cmp_steps <= 256 || !((lhs.$ === "Var" && lhs.v !== undefined) || (rhs.$ === "Var" && rhs.v !== undefined))) {
-    return cmp_go(mode, book, lhs, rhs, dep);
-  }
-  const row = cmp_seen.get(lhs) ?? cmp_seen.set(lhs, new Map()).get(lhs)!;
+  cx.seen ??= new Map();
+  const row = cx.seen.get(lhs) ?? cx.seen.set(lhs, new Map()).get(lhs)!;
   const cell = row.get(rhs) ?? row.set(rhs, new Map()).get(rhs)!;
   let r = cell.get(mode + dep);
   if (r === undefined) {
-    r = cmp_go(mode, book, lhs, rhs, dep);
+    r = cmp_go(cx, mode, book, lhs, rhs, dep);
     cell.set(mode + dep, r);
   }
   return r;
 }
 
-function cmp_go(mode: "EQ" | "LE", book: Book, lhs: HTerm, rhs: HTerm, dep: number): boolean {
+function cmp_go(cx: CmpCx, mode: "EQ" | "LE", book: Book, lhs: HTerm, rhs: HTerm, dep: number): boolean {
   let a = term_wnf(book, lhs);
   let b = term_wnf(book, rhs);
   if (a === b) {
@@ -3141,7 +3134,7 @@ function cmp_go(mode: "EQ" | "LE", book: Book, lhs: HTerm, rhs: HTerm, dep: numb
   }
   if (a.$ === "Lam" || b.$ === "Lam") {
     const x: HTerm = Var("_", dep);
-    return term_compare(mode, book, term_apply(a, x), term_apply(b, x), dep + 1);
+    return cmp(cx, mode, book, term_apply(a, x), term_apply(b, x), dep + 1);
   }
   if (a.$ === "Lit" && b.$ === "Ctr") {
     a = lit_step(a);
@@ -3164,14 +3157,14 @@ function cmp_go(mode: "EQ" | "LE", book: Book, lhs: HTerm, rhs: HTerm, dep: numb
       for (let j = 0; j < n; j++) {
         [f, g] = [App(f, Var("_", dep + j)), App(g, Var("_", dep + j))];
       }
-      return n > 0 && term_compare(mode, book, f, g, dep + n);
+      return n > 0 && cmp(cx, mode, book, f, g, dep + n);
     }
     case "Typ": {
       if (b.$ !== "Typ") {
         return false;
       }
       if (mode === "EQ") {
-        return term_compare("EQ", book, a.g, b.g, dep);
+        return cmp(cx, "EQ", book, a.g, b.g, dep);
       }
       const g = term_wnf(book, a.g);
       const h = term_wnf(book, b.g);
@@ -3179,16 +3172,16 @@ function cmp_go(mode: "EQ" | "LE", book: Book, lhs: HTerm, rhs: HTerm, dep: numb
         return true;
       }
       if (g.$ === "Min") {
-        const fa = term_compare("LE", book, Typ(g.a), b, dep);
-        const fb = term_compare("LE", book, Typ(g.b), b, dep);
+        const fa = cmp(cx, "LE", book, Typ(g.a), b, dep);
+        const fb = cmp(cx, "LE", book, Typ(g.b), b, dep);
         return fa && fb;
       }
       if (h.$ === "Min") {
-        const fa = term_compare("LE", book, a, Typ(h.a), dep);
-        const fb = term_compare("LE", book, a, Typ(h.b), dep);
+        const fa = cmp(cx, "LE", book, a, Typ(h.a), dep);
+        const fb = cmp(cx, "LE", book, a, Typ(h.b), dep);
         return fa || fb;
       }
-      return term_compare("LE", book, g, h, dep);
+      return cmp(cx, "LE", book, g, h, dep);
     }
     case "Qnt":
     case "Efq":
@@ -3200,14 +3193,14 @@ function cmp_go(mode: "EQ" | "LE", book: Book, lhs: HTerm, rhs: HTerm, dep: numb
     }
     case "Min": {
       return b.$ === "Min"
-          && term_compare("EQ", book, a.a, b.a, dep)
-          && term_compare("EQ", book, a.b, b.b, dep);
+          && cmp(cx, "EQ", book, a.a, b.a, dep)
+          && cmp(cx, "EQ", book, a.b, b.b, dep);
     }
     case "All": {
       const x: HTerm = Var(a.k, dep);
       return b.$ === "All" && a.q.$ === b.q.$
-          && term_compare(mode, book, b.A, a.A, dep)
-          && term_compare(mode, book, a.B(x), b.B(x), dep + 1);
+          && cmp(cx, mode, book, b.A, a.A, dep)
+          && cmp(cx, mode, book, a.B(x), b.B(x), dep + 1);
     }
     // a stuck call is canonical: its head def compares by name, not by eta
     case "App": {
@@ -3215,8 +3208,8 @@ function cmp_go(mode: "EQ" | "LE", book: Book, lhs: HTerm, rhs: HTerm, dep: numb
         return false;
       }
       const head = a.f.$ === "Ref" && b.f.$ === "Ref" ? a.f.k === b.f.k
-        : term_compare("EQ", book, a.f, b.f, dep);
-      return head && term_compare("EQ", book, a.x, b.x, dep);
+        : cmp(cx, "EQ", book, a.f, b.f, dep);
+      return head && cmp(cx, "EQ", book, a.x, b.x, dep);
     }
     case "ADT": {
       if (b.$ !== "ADT" || a.k !== b.k || a.x.length !== b.x.length) {
@@ -3226,34 +3219,34 @@ function cmp_go(mode: "EQ" | "LE", book: Book, lhs: HTerm, rhs: HTerm, dep: numb
         return false;
       }
       return b.r.every((c) => a.r.includes(c))
-          && a.x.every((x, j) => term_compare("EQ", book, x, b.x[j], dep));
+          && a.x.every((x, j) => cmp(cx, "EQ", book, x, b.x[j], dep));
     }
     case "Ctr": {
       return b.$ === "Ctr" && a.k === b.k && a.x.length === b.x.length
-          && a.x.every((x, j) => term_compare("EQ", book, x, b.x[j], dep));
+          && a.x.every((x, j) => cmp(cx, "EQ", book, x, b.x[j], dep));
     }
     case "Lit": {
       return b.$ === "Lit" && a.k === b.k && a.v === b.v;
     }
     case "Mat": {
       return b.$ === "Mat" && a.k === b.k
-          && term_compare("EQ", book, a.h, b.h, dep)
-          && term_compare("EQ", book, a.m, b.m, dep);
+          && cmp(cx, "EQ", book, a.h, b.h, dep)
+          && cmp(cx, "EQ", book, a.m, b.m, dep);
     }
     case "Eql": {
       return b.$ === "Eql"
-          && term_compare("EQ", book, a.a, b.a, dep)
-          && term_compare("EQ", book, a.b, b.b, dep)
-          && term_compare("EQ", book, a.T, b.T, dep);
+          && cmp(cx, "EQ", book, a.a, b.a, dep)
+          && cmp(cx, "EQ", book, a.b, b.b, dep)
+          && cmp(cx, "EQ", book, a.T, b.T, dep);
     }
     case "Hol": {
       return b.$ === "Hol" && a.k === b.k;
     }
     case "Rwt": {
       return b.$ === "Rwt"
-          && term_compare("EQ", book, a.e, b.e, dep)
-          && term_compare("EQ", book, a.p, b.p, dep)
-          && term_compare("EQ", book, a.f, b.f, dep);
+          && cmp(cx, "EQ", book, a.e, b.e, dep)
+          && cmp(cx, "EQ", book, a.p, b.p, dep)
+          && cmp(cx, "EQ", book, a.f, b.f, dep);
     }
     default: {
       return false;
