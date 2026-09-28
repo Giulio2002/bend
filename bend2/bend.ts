@@ -2781,6 +2781,16 @@ export function body_flatten(b: Body, vars: PVar[], fr: () => number): LTerm {
 // a rewrite demands its evidence and steps to its body on {==}, else
 // sticks as a value.
 
+// Base's Nat.add, Nat.mul, Nat.cmp and U32.to_nat on numerals give the
+// literal their definitions compute, instead of unfolding through Succ;
+// any other argument unfolds as before
+const NAT_OPS: Record<Name, (...v: number[]) => HTerm> = Object.setPrototypeOf({
+  "Nat.add": (a: number, b: number) => Lit("Nat", a + b),
+  "Nat.mul": (a: number, b: number) => Lit("Nat", a * b),
+  "Nat.cmp": (a: number, b: number) => Ctr(a < b ? "LT" : a > b ? "GT" : "EQ", []),
+  "U32.to_nat": (a: number) => Lit("Nat", a),
+}, null);
+
 export function term_wnf(book: Book, term: HTerm): HTerm {
   const frs: Frame[] = [];
   let tm: HTerm = term;
@@ -2877,6 +2887,18 @@ export function term_wnf(book: Book, term: HTerm): HTerm {
         }
         if (run < tld.n || tld.v === null) {
           break focus;
+        }
+        const op = NAT_OPS[tm.k];
+        const xs = frs.slice(frs.length - tld.n).reverse()
+          .map((fr) => term_strip((fr as Extract<Frame, { $: "APP" }>).x));
+        if (op !== undefined && xs.every((x) => x.$ === "Lit")) {
+          const r = op(...xs.map((x) => (x as Extract<HTerm, { $: "Lit" }>).v as number));
+          if (r.$ !== "Lit" || (r.v as number) <= 0xffffffff) {
+            frs.length -= tld.n;
+            lhs = null;
+            tm = r;
+            continue main;
+          }
         }
         const rf: HTerm = tm;
         lhs = { t: () => rf, n: tld.n };
@@ -3046,10 +3068,72 @@ export function term_snf(book: Book, term: HTerm): HTerm {
 // same walk, kinds exact, no swap (a swap under EQ is harmless, so
 // the All case swaps unconditionally).
 
+// a conversion first asks whether both sides are the same call, written
+// the same way (one walk, stopping at the first difference); past 256
+// steps it records the pairs it settles where a side is a share cell, the
+// only node met twice, so a shared graph is compared once, not as a tree
+let cmp_depth = 0;
+let cmp_steps = 0;
+let cmp_seen: Map<HTerm, Map<HTerm, Map<string, boolean>>> = new Map();
+
+function term_same(x: HTerm, y: HTerm): boolean {
+  x = term_strip(x);
+  y = term_strip(y);
+  switch (x.$) {
+    case "Lit": {
+      return y.$ === "Lit" && x.k === y.k && x.v === y.v;
+    }
+    case "Ref": {
+      return y.$ === "Ref" && x.k === y.k;
+    }
+    case "Var": {
+      return x === y;
+    }
+    case "App": {
+      return y.$ === "App" && term_same(x.x, y.x) && term_same(x.f, y.f);
+    }
+    case "Ctr": {
+      return y.$ === "Ctr" && x.k === y.k && x.x.length === y.x.length
+          && x.x.every((e, j) => term_same(e, y.x[j]));
+    }
+    default: {
+      return false;
+    }
+  }
+}
+
 export function term_compare(mode: "EQ" | "LE", book: Book, lhs: HTerm, rhs: HTerm, dep: number = 0): boolean {
   if (lhs === rhs) {
     return true;
   }
+  if (cmp_depth === 0) {
+    if (term_strip(lhs).$ === "App" && term_same(lhs, rhs)) {
+      return true;
+    }
+    cmp_steps = 0;
+    cmp_seen = new Map();
+    cmp_depth = 1;
+    try {
+      return cmp_go(mode, book, lhs, rhs, dep);
+    } finally {
+      cmp_depth = 0;
+    }
+  }
+  cmp_steps += 1;
+  if (cmp_steps <= 256 || !((lhs.$ === "Var" && lhs.v !== undefined) || (rhs.$ === "Var" && rhs.v !== undefined))) {
+    return cmp_go(mode, book, lhs, rhs, dep);
+  }
+  const row = cmp_seen.get(lhs) ?? cmp_seen.set(lhs, new Map()).get(lhs)!;
+  const cell = row.get(rhs) ?? row.set(rhs, new Map()).get(rhs)!;
+  let r = cell.get(mode + dep);
+  if (r === undefined) {
+    r = cmp_go(mode, book, lhs, rhs, dep);
+    cell.set(mode + dep, r);
+  }
+  return r;
+}
+
+function cmp_go(mode: "EQ" | "LE", book: Book, lhs: HTerm, rhs: HTerm, dep: number): boolean {
   let a = term_wnf(book, lhs);
   let b = term_wnf(book, rhs);
   if (a === b) {
