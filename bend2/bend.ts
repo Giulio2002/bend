@@ -3068,31 +3068,86 @@ export function term_snf(book: Book, term: HTerm): HTerm {
 // same walk, kinds exact, no swap (a swap under EQ is harmless, so
 // the All case swaps unconditionally).
 
-// a conversion first asks whether both sides are the same call, written
-// the same way (one walk, stopping at the first difference); past 256
-// steps it records the pairs it settles where a side is a share cell, the
-// only node met twice, so a shared graph is compared once, not as a tree
-type CmpCx = { steps: number, seen: Map<HTerm, Map<HTerm, Map<string, boolean>>> | null };
+// every step of a conversion first asks whether both sides are the same
+// term, written the same way (a walk stopping at the first difference,
+// which remembers its answer for share cells, the only nodes met twice,
+// and the calls it found different, so no walk is repeated as the
+// conversion descends); past 256 steps it records the pairs it settles
+// where a side is a share cell, so a shared graph is compared once, not
+// as a tree
+type CmpCx = {
+  steps: number,
+  seen: Map<HTerm, Map<HTerm, Map<string, boolean>>> | null,
+  diff: Map<HTerm, Set<HTerm>> | null,
+  cells: Map<HTerm, Map<HTerm, boolean>> | null,
+};
 
-function term_same(x: HTerm, y: HTerm): boolean {
+function term_same(cx: CmpCx, x: HTerm, y: HTerm): boolean {
+  if ((x.$ === "Var" && x.v !== undefined) || (y.$ === "Var" && y.v !== undefined)) {
+    cx.cells ??= new Map();
+    const row = cx.cells.get(x) ?? cx.cells.set(x, new Map()).get(x)!;
+    let r = row.get(y);
+    if (r === undefined) {
+      r = same_go(cx, x, y);
+      row.set(y, r);
+    }
+    return r;
+  }
+  return same_go(cx, x, y);
+}
+
+function same_go(cx: CmpCx, x: HTerm, y: HTerm): boolean {
   x = term_strip(x);
   y = term_strip(y);
+  if (x === y) {
+    return true;
+  }
+  if (x.$ !== y.$) {
+    return false;
+  }
+  const z = y as typeof x;
   switch (x.$) {
     case "Lit": {
-      return y.$ === "Lit" && x.k === y.k && x.v === y.v;
+      return x.k === (z as typeof x).k && x.v === (z as typeof x).v;
     }
     case "Ref": {
-      return y.$ === "Ref" && x.k === y.k;
+      return x.k === (z as typeof x).k;
     }
     case "Var": {
-      return x === y;
+      return x.i >= 0 && x.i === (z as typeof x).i;
+    }
+    case "Rfl":
+    case "Efq": {
+      return true;
+    }
+    case "Eql": {
+      const w = z as typeof x;
+      return term_same(cx, x.a, w.a) && term_same(cx, x.b, w.b) && term_same(cx, x.T, w.T);
     }
     case "App": {
-      return y.$ === "App" && term_same(x.x, y.x) && term_same(x.f, y.f);
+      const w = z as typeof x;
+      let f: HTerm = x;
+      let g: HTerm = w;
+      while (f.$ === "App" && g.$ === "App") {
+        f = term_strip(f.f);
+        g = term_strip(g.f);
+      }
+      if (f.$ === "App" || g.$ === "App" || !term_same(cx, f, g) || cx.diff?.get(x)?.has(w)) {
+        return false;
+      }
+      if (same_args(cx, x, w)) {
+        return true;
+      }
+      cx.diff ??= new Map();
+      (cx.diff.get(x) ?? cx.diff.set(x, new Set()).get(x)!).add(w);
+      return false;
     }
-    case "Ctr": {
-      return y.$ === "Ctr" && x.k === y.k && x.x.length === y.x.length
-          && x.x.every((e, j) => term_same(e, y.x[j]));
+    case "Ctr":
+    case "ADT": {
+      const w = z as typeof x;
+      return x.k === w.k && x.x.length === w.x.length
+          && (x.$ !== "ADT" || x.r.join() === (w as typeof x).r.join())
+          && x.x.every((e, j) => term_same(cx, e, w.x[j]));
     }
     default: {
       return false;
@@ -3100,15 +3155,23 @@ function term_same(x: HTerm, y: HTerm): boolean {
   }
 }
 
+// the arguments of two calls whose heads and arities agree, first to last
+function same_args(cx: CmpCx, x: HTerm, y: HTerm): boolean {
+  return x.$ !== "App" || y.$ !== "App"
+      || (same_args(cx, term_strip(x.f), term_strip(y.f)) && term_same(cx, x.x, y.x));
+}
+
 export function term_compare(mode: "EQ" | "LE", book: Book, lhs: HTerm, rhs: HTerm, dep: number = 0): boolean {
-  if (lhs === rhs || (term_strip(lhs).$ === "App" && term_same(lhs, rhs))) {
-    return true;
-  }
-  return cmp_go({ steps: 0, seen: null }, mode, book, lhs, rhs, dep);
+  return cmp({ steps: 0, seen: null, diff: null, cells: null }, mode, book, lhs, rhs, dep);
 }
 
 function cmp(cx: CmpCx, mode: "EQ" | "LE", book: Book, lhs: HTerm, rhs: HTerm, dep: number): boolean {
   if (lhs === rhs) {
+    return true;
+  }
+  const lk = term_strip(lhs).$;
+  const rk = term_strip(rhs).$;
+  if ((lk === "App" || lk === "Ref" || rk === "App" || rk === "Ref") && term_same(cx, lhs, rhs)) {
     return true;
   }
   cx.steps += 1;
