@@ -161,6 +161,11 @@ const OPERATIONS: Record<string, Intr> = Object.setPrototypeOf({
     C:  "U32_BIN($0, *, $1)",
     JS: "(Math.imul($0, $1) >>> 0)",
   },
+  // the double product misses by under 2^12, so its high word rounds exact
+  u32_mul_hi: {
+    C:  "(((u64)(u32)($0) * (u32)($1)) >> 32)",
+    JS: "((($0 * $1 - (Math.imul($0, $1) >>> 0)) / 4294967296 + 0.5) >>> 0)",
+  },
   u32_div: {
     C:  "((u32)($1) == 0 ? 0 : (u64)U32_QUO((u32)($0), (u32)($1)))",
     JS: "($1 === 0 ? 0 : ($0 / $1) >>> 0)",

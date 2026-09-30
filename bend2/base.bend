@@ -1332,6 +1332,24 @@ def Word.mul.go(+n: Nat, m: Nat, a: Word(m), +b: Word(n), acc: Word(n)) ->
 def Word.mul(+n: Nat, a: Word(n), b: Word(n)) -> Word(n):
   Word.mul.go(n, n, a, b, Word.zero(n))
 
+def Word.pad(n: Nat, m: Nat, w: Word(n)) -> Word(Nat.add(n, m)):
+  match n:
+    case 0n:
+      Word.zero(m)
+    case 1n+p:
+      match w:
+        case WCon{b, t}:
+          WCon{b, Word.pad(p, m, t)}
+
+def Word.drop(n: Nat, m: Nat, w: Word(Nat.add(n, m))) -> Word(m):
+  match n:
+    case 0n:
+      w
+    case 1n+p:
+      match w:
+        case WCon{b, t}:
+          Word.drop(p, m, t)
+
 # U32
 # ---
 
@@ -1365,6 +1383,12 @@ def U32.mul(a: U32, b: U32) -> U32:
   match a b:
     case U32{x} U32{y}:
       U32{Word.mul(32n, x, y)}
+
+def U32.mul_hi(a: U32, b: U32) -> U32:
+  match a b:
+    case U32{x} U32{y}:
+      U32{Word.drop(32n, 32n, Word.mul.go(64n, 32n, x, Word.pad(32n, 32n, y),
+        Word.zero(64n)))}
 
 def U32.not(a: U32) -> U32:
   match a:
