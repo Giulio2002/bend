@@ -3093,22 +3093,24 @@ function compare_args(lhs: HTerm, rhs: HTerm, dep: number): boolean {
   return compare_args(f.f, g.f, dep) && compare_go("EQ", RIGID, f.x, g.x, dep);
 }
 
-function compare_go(mode: "EQ" | "LE", book: Book, lhs: HTerm, rhs: HTerm, dep: number): boolean {
-  const cells = book === RIGID && mode === "EQ" && lhs.$ === "Var" && lhs.v !== undefined && rhs.$ === "Var";
-  const old = cells ? seen.get(lhs) : undefined;
+// a rigid EQ comparison of two cells goes through seen; the full pass
+// adds no frame, so a conversion recurses as deep as before
+function compare_seen(lhs: HTerm, rhs: HTerm, dep: number): boolean {
+  const old = seen.get(lhs);
   if (old !== undefined && old[0] === rhs) {
     return old[1];
   }
-  const same = compare_node(mode, book, lhs, rhs, dep);
-  if (cells) {
-    seen.set(lhs, [rhs, same]);
-  }
+  const same = compare_go("EQ", RIGID, lhs, rhs, dep, false);
+  seen.set(lhs, [rhs, same]);
   return same;
 }
 
-function compare_node(mode: "EQ" | "LE", book: Book, lhs: HTerm, rhs: HTerm, dep: number): boolean {
+function compare_go(mode: "EQ" | "LE", book: Book, lhs: HTerm, rhs: HTerm, dep: number, memo: boolean = true): boolean {
   if (lhs === rhs) {
     return true;
+  }
+  if (memo && book === RIGID && mode === "EQ" && lhs.$ === "Var" && lhs.v !== undefined && rhs.$ === "Var") {
+    return compare_seen(lhs, rhs, dep);
   }
   if (book !== RIGID && compare_call(book, lhs, rhs, dep)) {
     if (mode === "EQ" && lhs.$ === "Var" && lhs.i === -2 && rhs.$ === "Var" && rhs.i === -2) {
