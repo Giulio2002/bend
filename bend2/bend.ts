@@ -2791,7 +2791,8 @@ export function term_wnf(book: Book, term: HTerm): HTerm {
         if (tm.v === undefined) {
           break focus;
         } else {
-          if (tm.i === -1) {
+          // a rigid whnf is not the cell's: it would stop the full one
+          if (tm.i === -1 && book !== RIGID) {
             frs.push({ $: "VAR", l: tm, a: tm.v.$ === "Ann" ? tm.v : undefined });
           }
           lhs = null;
@@ -3049,13 +3050,70 @@ export function term_snf(book: Book, term: HTerm): HTerm {
 const RIGID: Book = book_nil();
 
 // two copies of one term are equal: a conversion first compares both
-// sides with every def rigid (the empty book unfolds none), then as usual
+// sides with every def rigid (the empty book unfolds none), then as
+// usual, asking the rigid pass again at each pair of calls it unfolds
 export function term_compare(mode: "EQ" | "LE", book: Book, lhs: HTerm, rhs: HTerm, dep: number = 0): boolean {
+  seen = new WeakMap();
   return compare_go(mode, RIGID, lhs, rhs, dep) || compare_go(mode, book, lhs, rhs, dep);
 }
 
+// the pairs of cells a conversion's rigid walks compared, and the
+// answer: the arguments of a call one unfold down are often fields of
+// cells a rigid walk above already compared, so no walk is repeated
+let seen = new WeakMap<HTerm, [HTerm, boolean]>();
+
+// two calls of one def are equal when their arguments are equal with
+// every def rigid, as the rigid pass finds: the full pass asks it before
+// it unfolds them, so a copy met only after an outer def unfolds (a big
+// numeral in a field) converts without evaluating either
+function compare_call(book: Book, lhs: HTerm, rhs: HTerm, dep: number): boolean {
+  let f = term_strip(lhs);
+  while (f.$ === "App") {
+    f = term_strip(f.f);
+  }
+  if (f.$ !== "Ref") {
+    return false;
+  }
+  let g = term_strip(rhs);
+  while (g.$ === "App") {
+    g = term_strip(g.f);
+  }
+  const d = book.tlds[f.k];
+  return g.$ === "Ref" && g.k === f.k && d?.$ === "Def" && d.v !== null
+      && compare_args(lhs, rhs, dep);
+}
+
+// the arguments of two spines of one head, first to last
+function compare_args(lhs: HTerm, rhs: HTerm, dep: number): boolean {
+  const f = term_strip(lhs);
+  const g = term_strip(rhs);
+  if (f.$ !== "App" || g.$ !== "App") {
+    return f.$ !== "App" && g.$ !== "App";
+  }
+  return compare_args(f.f, g.f, dep) && compare_go("EQ", RIGID, f.x, g.x, dep);
+}
+
 function compare_go(mode: "EQ" | "LE", book: Book, lhs: HTerm, rhs: HTerm, dep: number): boolean {
+  const cells = book === RIGID && mode === "EQ" && lhs.$ === "Var" && lhs.v !== undefined && rhs.$ === "Var";
+  const old = cells ? seen.get(lhs) : undefined;
+  if (old !== undefined && old[0] === rhs) {
+    return old[1];
+  }
+  const same = compare_node(mode, book, lhs, rhs, dep);
+  if (cells) {
+    seen.set(lhs, [rhs, same]);
+  }
+  return same;
+}
+
+function compare_node(mode: "EQ" | "LE", book: Book, lhs: HTerm, rhs: HTerm, dep: number): boolean {
   if (lhs === rhs) {
+    return true;
+  }
+  if (book !== RIGID && compare_call(book, lhs, rhs, dep)) {
+    if (mode === "EQ" && lhs.$ === "Var" && lhs.i === -2 && rhs.$ === "Var" && rhs.i === -2) {
+      rhs.v = lhs.v;
+    }
     return true;
   }
   let a = term_wnf(book, lhs);
