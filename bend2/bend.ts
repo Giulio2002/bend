@@ -3048,6 +3048,41 @@ export function term_snf(book: Book, term: HTerm): HTerm {
 
 const RIGID: Book = book_nil();
 
+// Syntactic identity, forcing share cells but unfolding nothing, within a
+// node budget. Identical terms are convertible; false means "unknown".
+function term_same(lhs: HTerm, rhs: HTerm): boolean {
+  const st: HTerm[] = [lhs, rhs];
+  for (let n = 4096; st.length > 0; n--) {
+    const y = term_strip(st.pop()!);
+    const x = term_strip(st.pop()!);
+    if (x === y) {
+      continue;
+    }
+    if (n === 0 || x.$ !== y.$) {
+      return false;
+    }
+    const z = y as typeof x;
+    switch (x.$) {
+      case "Var": if (x.i < 0 || x.i !== (z as typeof x).i) { return false; } break;
+      case "Ref": if (x.k !== (z as typeof x).k) { return false; } break;
+      case "Lit": if (x.k !== (z as typeof x).k || x.v !== (z as typeof x).v) { return false; } break;
+      case "App": st.push(x.x, (z as typeof x).x, x.f, (z as typeof x).f); break;
+      case "Ctr": {
+        const w = z as typeof x;
+        if (x.k !== w.k || x.x.length !== w.x.length) {
+          return false;
+        }
+        for (let j = x.x.length - 1; j >= 0; j--) {
+          st.push(x.x[j], w.x[j]);
+        }
+        break;
+      }
+      default: return false;
+    }
+  }
+  return true;
+}
+
 // two copies of one term are equal: a conversion first compares both
 // sides with every def rigid (the empty book unfolds none), then as usual
 export function term_compare(mode: "EQ" | "LE", book: Book, lhs: HTerm, rhs: HTerm, dep: number = 0): boolean {
@@ -3056,6 +3091,13 @@ export function term_compare(mode: "EQ" | "LE", book: Book, lhs: HTerm, rhs: HTe
 
 function compare_go(mode: "EQ" | "LE", book: Book, lhs: HTerm, rhs: HTerm, dep: number): boolean {
   if (lhs === rhs) {
+    return true;
+  }
+  // two calls identical before any def unfolds convert without evaluating
+  if (book !== RIGID && term_same(lhs, rhs)) {
+    if (mode === "EQ" && lhs.$ === "Var" && lhs.i === -2 && rhs.$ === "Var" && rhs.i === -2) {
+      rhs.v = lhs.v;
+    }
     return true;
   }
   let a = term_wnf(book, lhs);
