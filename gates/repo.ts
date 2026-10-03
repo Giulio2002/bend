@@ -53,6 +53,7 @@ allow(/^bend2\/effs\/[a-z0-9_]+\.(c|js)$/);
 allow(/^bend2\/pack\/(\.gitignore|package\.json|tsconfig\.json|bun\.lock)$/);
 allow(/^bend2\/docs\/(BendRT|BendTT)\/(main\.typ|refs\.bib)$/);
 allow("bend2/docs/bend.sublime-syntax");
+allow("bend2/docs/CACHE.md");
 allow(/^bend2\/docs\/film\/(film\.ts|[a-z]+\.json)$/);
 allow("bend2/docs/gen_anim.ts");
 allow("bend2/docs/gen_charts.ts");

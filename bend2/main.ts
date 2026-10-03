@@ -913,6 +913,8 @@ function book_err(e: unknown): string {
 // means one run checked that exact prefix, with this exact checker, and
 // passed. An entry is written aside and renamed in, so runs share the dir.
 
+const ENTRY = 1;
+
 type Mod = { real: string; sha: string; imps: string[]; ns: string;
   end: number; tlds: number; ctrs: number };
 
@@ -959,25 +961,62 @@ function cache_find(book: Bend.Book, mods: Mods): number {
   const self = import.meta.url.startsWith("file:///$bunfs/") ? [process.execPath]
     : ["bend.ts", "comp.ts", "safe.ts", "main.ts", "base.bend"]
       .map((f) => path.join(Bend.BEND_DIR, f));
-  let key = sha256([VERSION, Bun.revision, path.resolve(lib),
-    ...self.map(file_sha)].join("\n"));
+  let key = sha256([ENTRY, VERSION, Bun.revision, path.resolve(lib),
+    ...self.map(file_sha), ...cache_env()].join("\n"));
   mods.hash = mods.mods.map((m) => key = key === "" || m.sha === "" ? ""
     : sha256([key, m.real, m.ns, m.sha, ...m.imps].join("\n")));
   Object.keys(book.tlds).forEach((k, i) => mods.tpos.set(k, i));
   Object.keys(book.ctrs).forEach((k, i) => mods.cpos.set(k, i));
   const reach = cache_reach(book, mods);
   for (let j = mods.mods.length - 1; j >= cache_base(mods); j--) {
-    try {
-      const got = (mods.hash[j] === "" || reach[j] >= mods.mods[j].end ? {}
-        : JSON.parse(fs.readFileSync(path.join(cache_dir(), mods.hash[j]),
-          "utf8"))) as { taint?: unknown };
-      if (Array.isArray(got.taint)) {
-        mods.taint = got.taint.map(String);
-        return mods.done = mods.mods[j].end;
-      }
-    } catch {}
+    const got = mods.hash[j] === "" || reach[j] >= mods.mods[j].end ? null
+      : cache_read(mods.hash[j]);
+    if (got !== null) {
+      mods.taint = got;
+      return mods.done = mods.mods[j].end;
+    }
   }
   return 0;
+}
+
+// cache_env is what else a verdict depends on: the machine stack and memory
+// limits (a deep recursion that fits one stack overflows a smaller one), the
+// runtime's own flags and variables (BUN_*, NODE_*, BEND_*)
+function cache_env(): string[] {
+  const vars = Object.keys(process.env).filter((k) => /^(BUN_|NODE_|BEND_)/.test(k)
+    && k !== "BEND_CACHE" && k !== "BEND_NO_TELEMETRY").sort()
+    .map((k) => k + "=" + String(process.env[k]));
+  let lim = "";
+  try {
+    lim = fs.readFileSync("/proc/self/limits", "utf8").split("\n")
+      .filter((l) => /^Max (stack|address|data|resident)/.test(l)).join("\n");
+  } catch {}
+  if (lim === "") {
+    try {
+      lim = child.execFileSync("/bin/sh", ["-c", "ulimit -s; ulimit -v; ulimit -d"],
+        { encoding: "utf8" });
+    } catch {}
+  }
+  return [...vars, ...process.execArgv, lim];
+}
+
+// an entry is JSON naming its format, its key and the prefix's promises, with
+// a sum over the three; a missing, short, foreign or altered file is no entry
+function cache_sum(key: string, taint: string[]): string {
+  return sha256([ENTRY, key, ...taint].join("\n"));
+}
+
+function cache_read(key: string): string[] | null {
+  try {
+    const got = JSON.parse(fs.readFileSync(path.join(cache_dir(), key), "utf8")) as
+      { v?: unknown; key?: unknown; taint?: unknown; sum?: unknown };
+    if (got.v === ENTRY && got.key === key && Array.isArray(got.taint)
+      && got.taint.every((k) => typeof k === "string")
+      && got.sum === cache_sum(key, got.taint as string[])) {
+      return got.taint as string[];
+    }
+  } catch {}
+  return null;
 }
 
 // cache_save writes the entries of a run whose verdict passed; a cache that
@@ -1002,13 +1041,20 @@ function cache_save(book: Bend.Book, mods: Mods): void {
           });
         }
       }
-      const at = path.join(dir, mods.hash[j]);
-      if (j >= cache_base(mods) && mods.hash[j] !== "" && reach[j] < m.end
-        && t < m.tlds && c < m.ctrs && !fs.existsSync(at)) {
-        const tmp = at + "." + String(process.pid) + ".tmp";
-        fs.writeFileSync(tmp, JSON.stringify({ taint: book.order
-          .slice(0, m.end).filter((k) => mods.bad.has(k)) }) + "\n");
-        fs.renameSync(tmp, at);
+      const key = mods.hash[j];
+      if (j >= cache_base(mods) && key !== "" && reach[j] < m.end
+        && t < m.tlds && c < m.ctrs && cache_read(key) === null) {
+        const taint = book.order.slice(0, m.end).filter((k) => mods.bad.has(k));
+        const tmp = path.join(dir, key + "." + String(process.pid) + "."
+          + crypto.randomBytes(6).toString("hex") + ".tmp");
+        try {
+          fs.writeFileSync(tmp, JSON.stringify({ v: ENTRY, key, taint,
+            sum: cache_sum(key, taint) }) + "\n");
+          fs.renameSync(tmp, path.join(dir, key));
+        } catch (e) {
+          fs.rmSync(tmp, { force: true });
+          throw e;
+        }
       }
     }
   } catch {}
