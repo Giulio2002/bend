@@ -1014,6 +1014,9 @@ export async function book_load(book: Book, file: string, ns: string, seen: Map<
   if (real === BASE_BEND) {
     for (const k of book.order.slice(n0)) {
       book.tlds[k].b = true;
+      if (k in NAT_FAST_OPS) {
+        NAT_FAST.set(book.tlds[k], NAT_FAST_OPS[k]);
+      }
     }
   }
   seen.set(real, ns);
@@ -2781,6 +2784,75 @@ export function body_flatten(b: Body, vars: PVar[], fr: () => number): LTerm {
 // a rewrite demands its evidence and steps to its body on {==}, else
 // sticks as a value.
 
+// Nat literals
+// ============
+// Base's Nat.add, Nat.sub, Nat.mul, Nat.divmod and Nat.cmp recurse once per
+// successor, and the conversion check walks the successors they leave one
+// Ctr at a time, so a closed term over a big literal (4294967294n + 1n)
+// overflows the machine stack at a few tens of thousands. When the
+// arguments of a saturated call of one of these Base defs both reduce to Nat
+// literals and the result is a Nat literal (or a Cmp, or a pair of them), the
+// machine returns that literal directly: the exact value the unary
+// reduction reaches, in a form conversion already treats as equal to the
+// unary one (Lit vs Succ chain, see compare_go and lit_step).
+// bend2/docs/NAT_LITERALS.md has the argument. Only the defs read from Base
+// are touched (NAT_FAST holds them by identity), only literals at or
+// past NAT_FAST_MIN, and any case this does not cover (a non-literal
+// argument, a result past NAT_LITERAL_LIMIT, a zero divisor) takes the
+// unchanged unary path.
+
+type NatOp = "add" | "sub" | "mul" | "divmod" | "cmp";
+const NAT_FAST_OPS: Record<string, NatOp> = Object.assign(Object.create(null), {
+  "Nat.add": "add", "Nat.sub": "sub", "Nat.mul": "mul", "Nat.divmod": "divmod", "Nat.cmp": "cmp",
+});
+const NAT_FAST = new WeakMap<object, NatOp>();
+export const NAT_FAST_MIN = 256;
+const NAT_LITERAL_LIMIT = 0xffffffff;
+
+function nat_lit(book: Book, x: HTerm): number | null {
+  const w = term_wnf(book, x);
+  return w.$ === "Lit" && w.k === "Nat" ? w.v : null;
+}
+
+// x0 and x1 are the call's first and second arguments. Each case forces the
+// arguments in the order the unary def does, and forces the second only
+// where the unary def would too (or, for add, sub and mul, once the first is
+// a big literal, so the unary path would take at least NAT_FAST_MIN steps).
+function nat_fast(book: Book, op: NatOp, x0: HTerm, x1: HTerm, s?: Span): HTerm | null {
+  if (op === "divmod") {
+    const b = nat_lit(book, x1);
+    if (b === null || b === 0) {
+      return null;
+    }
+    const a = nat_lit(book, x0);
+    if (a === null || a <= NAT_FAST_MIN) {
+      return null;
+    }
+    const r = a % b;
+    return Ctr("Tuple", [Lit("Nat", (a - r) / b, s), Lit("Nat", r, s)], s);
+  }
+  const a = nat_lit(book, x0);
+  if (a === null) {
+    return null;
+  }
+  if (op === "cmp") {
+    const b = nat_lit(book, x1);
+    if (b === null || (a <= NAT_FAST_MIN && b <= NAT_FAST_MIN)) {
+      return null;
+    }
+    return Ctr(a < b ? "LT" : a === b ? "EQ" : "GT", [], s);
+  }
+  if (a <= NAT_FAST_MIN) {
+    return null;
+  }
+  const b = nat_lit(book, x1);
+  if (b === null) {
+    return null;
+  }
+  const v = op === "add" ? a + b : op === "sub" ? Math.max(a - b, 0) : a * b;
+  return v <= NAT_LITERAL_LIMIT ? Lit("Nat", v, s) : null;
+}
+
 export function term_wnf(book: Book, term: HTerm): HTerm {
   const frs: Frame[] = [];
   let tm: HTerm = term;
@@ -2878,6 +2950,17 @@ export function term_wnf(book: Book, term: HTerm): HTerm {
         }
         if (run < tld.n || tld.v === null) {
           break focus;
+        }
+        const nop = NAT_FAST.get(tld);
+        if (nop !== undefined && tld.n === 2) {
+          const big = nat_fast(book, nop, (frs[frs.length - 1] as Extract<Frame, { $: "APP" }>).x,
+            (frs[frs.length - 2] as Extract<Frame, { $: "APP" }>).x, tm.s);
+          if (big !== null) {
+            frs.pop();
+            frs.pop();
+            tm = big;
+            break focus;
+          }
         }
         const rf: HTerm = tm;
         lhs = { t: () => rf, n: tld.n };
