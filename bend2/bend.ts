@@ -1462,8 +1462,17 @@ export function expr_show(book: Book, x: Expr, bnd: Name[] = [], file?: File): s
   if (typeof x === "string") {
     return x;
   } else {
-    const t = term_lower(term_snf(book, x), bnd.length);
-    return term_show(t, -1, bnd, file);
+    // an error shows a term in normal form; a normal form too deep for the
+    // stack (Nat.double(100000n)) must not hide the error it belongs to, so
+    // it shows the term as written
+    try {
+      return term_show(term_lower(term_snf(book, x), bnd.length), -1, bnd, file);
+    } catch (e) {
+      if (!(e instanceof RangeError)) {
+        throw e;
+      }
+      return term_show(term_lower(x, bnd.length), -1, bnd, file);
+    }
   }
 }
 

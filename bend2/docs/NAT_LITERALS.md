@@ -73,3 +73,16 @@ nat_literals_big_mismatch.bend (still fails, same message). Differential:
 363 equations over 0..20000 for the five ops (including b = 0), accepted
 by both the unary and the fast checker, and 363 wrong equations rejected
 with byte-identical output by both.
+
+## Second change: an error is shown even when its normal form is too deep
+
+`expr_show` prints the two sides of a failed equation in normal form. For a
+term whose normal form is a unary chain 20000 deep (the closed Nat terms that
+overflow above are of this kind, and so is `Nat.double(100000n)`),
+`term_snf` overflows the stack while the error is being printed. The
+RangeError is thrown inside the handler that prints errors, so it is not
+caught: the process dies with Bun's raw RangeError trace, exit code 1, and
+no "SOME PROOFS FAIL" line, and the real error (a mismatch in an unrelated
+def) is lost. `expr_show` now catches a RangeError from the normalization
+and shows the term as written. Only the text of an already-failed check
+changes; no verdict does.
