@@ -90,7 +90,7 @@ type Bind = { o: O; T: HTerm | null; v?: HTerm };
 
 // specialized parameter or tree columns; instance captures stay with
 // these arguments, in dependency order, rather than in pass-global maps
-type Cols = Array<HTerm | null> & { caps?: Map<number | O, Bind & { T: HTerm; k: Name }> };
+type Cols = Array<HTerm | null> & { caps?: Map<number | O, Bind & { T: HTerm; k: Name; q: Q }> };
 
 // an argument: its binder's quantity, the argument, the binder's type,
 // and its value when the binder is specialized
@@ -517,7 +517,9 @@ function spec_val(e: Safe, s: Scope, x: HTerm, cols: Cols): HTerm {
       const T = close(b.T);
       let k = "\0capture" + cols.caps!.size;
       while (s.caps!.has(k)) k += "_";
-      c = { ...b, T, k };
+      // A live closure stays affine. The kernel must reject an instance that
+      // needs to copy it; only a known Data capture may be reusable.
+      c = { ...b, T, k, q: kind(e, s, b.T) === 2 ? 2 : 1 };
       cols.caps!.set(key, c);
       s.caps!.set(k, c);
     }
@@ -544,17 +546,17 @@ function spec_scope(e: Safe, cols: Cols, self: string): { s: Scope; ps: Binder[]
   let s = { ...scope_nil(), self };
   const ps: Binder[] = [];
   if (cols.caps?.size) s.caps = new Map();
-  for (const { k, T } of cols.caps?.values() ?? []) {
-    ps.push([2, s.D, term(e, s, T, false)]);
+  for (const { k, T, q } of cols.caps?.values() ?? []) {
+    ps.push([q, s.D, term(e, s, T, false)]);
     s.caps!.set(k, { o: { $: "Var", l: s.D }, T });
-    s = scope_kq(scope_hide(s), s.D, 2);
+    s = scope_kq(scope_hide(s), s.D, q);
   }
   return { s, ps };
 }
 
 function spec_apply(cols: Cols, head: O): O {
   for (const c of cols.caps?.values() ?? []) {
-    head = { $: "App", q: 2, f: head, x: c.o };
+    head = { $: "App", q: c.q, f: head, x: c.o };
   }
   return head;
 }
@@ -1173,7 +1175,7 @@ function args(e: Safe, s: Scope, k: Name | O, T: HTerm | null, xs: HTerm[], live
     }
     let v = j < nx ? closed_val(e, s, x) : null;
     if (j < nx && (v === null || s.caps?.size)) {
-      if (v === null && (live || s.lift === false)) {
+      if (v === null && s.lift === false) {
         oos("a template argument that depends on a runtime value", Open_Error);
       }
       if (cols.caps === undefined) {
